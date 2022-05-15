@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"github.com/AllenShaw19/paxos/log"
 	"github.com/golang/protobuf/proto"
-	"hash/crc32"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
 )
+
+var FileIDLen = sizeOfInt + sizeOfInt + sizeOfUint32
 
 type LogStore struct {
 	file            *os.File
@@ -104,7 +105,7 @@ func (s *LogStore) Init(path string, myGroupIdx int, database *Database) error {
 	var metaCheckSum uint32 = 0
 	if readLen == sizeOfUint32 {
 		metaCheckSum = binary.BigEndian.Uint32(metaCheckSumBuf)
-		checkSum := crc32.ChecksumIEEE(fileIDBuf)
+		checkSum := Crc32(s.fileID)
 		if checkSum != metaCheckSum {
 			log.Error("meta file checksum not same to cal checksum",
 				log.Uint32("meta checksum", metaCheckSum),
@@ -145,6 +146,29 @@ func (s *LogStore) Init(path string, myGroupIdx int, database *Database) error {
 		log.Int64("now_file_write_offset", s.nowFileOffset))
 
 	return nil
+}
+
+func (s *LogStore) Append() {
+
+}
+
+func (s *LogStore) Read() {
+
+}
+
+func (s *LogStore) Del() {
+
+}
+
+func (s *LogStore) ForceDel() {
+
+}
+
+func (s *LogStore) IsValidFileID(fileID string) bool {
+	if len(fileID) != FileIDLen {
+		return false
+	}
+	return true
 }
 
 func (s *LogStore) RebuildIndex(database *Database) (int64, error) {
@@ -206,7 +230,7 @@ func (s *LogStore) RebuildIndexForOneFile(fileID int, offset int64, database *Da
 
 	filePath := fmt.Sprintf("%s/%d.f", s.path, fileID)
 
-	if !Exists(filePath) {
+	if !IsExists(filePath) {
 		log.Error("file not exist", log.String("filepath", filePath))
 		return 0, nowInstanceID, ErrNotExist
 	}
@@ -296,7 +320,7 @@ func (s *LogStore) RebuildIndexForOneFile(fileID int, offset int64, database *Da
 			break
 		}
 
-		fileCheckSum := crc32.ChecksumIEEE(s.tmpBuffer)
+		fileCheckSum := Crc32(s.tmpBuffer)
 		fID := s.genFileID(fileID, nowOffset, fileCheckSum)
 
 		err = database.ReBuildOneIndex(instanceID, fID)
@@ -405,4 +429,118 @@ func (s *LogStore) expandFile(file *os.File) (int, error) {
 	}
 
 	return int(fileSize), nil
+}
+
+func (s *LogStore) increaseFileID() error {
+	fileID := s.fileID + 1
+	checkSum := Crc32(fileID)
+
+	_, err := s.metaFile.Seek(0, io.SeekStart)
+	if err != nil {
+		return err
+	}
+
+	writeLen, err := s.metaFile.Write(IntToBytes(fileID))
+	if err != nil || writeLen != sizeOfInt {
+		log.Error("write meta file_id fail", log.Int("writelen", writeLen), log.Err(err))
+		return fmt.Errorf("write meta fileid fail with %v, %d", err, writeLen)
+	}
+
+	writeLen, err = s.metaFile.Write(IntToBytes(checkSum))
+	if err != nil || writeLen != sizeOfUint32 {
+		log.Error("write meta checksum fail", log.Int("writelen", writeLen), log.Err(err))
+		return fmt.Errorf("write meta checksum fail with %v, %d", err, writeLen)
+	}
+
+	err = s.metaFile.Sync()
+	if err != nil {
+		log.Error("sync meta fail", log.Err(err))
+		return err
+	}
+
+	s.fileID++
+
+	return nil
+}
+
+func (s *LogStore) deleteFile(fileID int) error {
+	if s.deletedMaxFileID == -1 {
+		if s.fileID-2000 > 0 {
+			s.deletedMaxFileID = fileID - 2000
+		}
+	}
+
+	if fileID <= s.deletedMaxFileID {
+		log.Debug("file already deleted", log.Int("fileid", fileID), log.Int("deleted_max_fileid", s.deletedMaxFileID))
+		return nil
+	}
+
+	var err error
+	for deleteFileID := s.deletedMaxFileID + 1; deleteFileID <= fileID; deleteFileID++ {
+		filePath := fmt.Sprintf("%s/%d.f", s.path, deleteFileID)
+
+		if !IsExists(filePath) {
+			log.Warn("file already deleted", log.String("filepath", filePath))
+			s.deletedMaxFileID = deleteFileID
+			continue
+		}
+
+		err = os.Remove(filePath)
+		if err != nil {
+			log.Error("remove fail", log.String("filepath", filePath), log.Err(err))
+			break
+		}
+		s.deletedMaxFileID = deleteFileID
+		log.Info("delete file success", log.Int("file_id", deleteFileID))
+	}
+
+	return err
+}
+
+func (s *LogStore) getFile(needWriteSize int) (file *os.File, fileID int, offset int64, err error) {
+	if s.file != nil {
+		log.Error("file already broken.", log.Int("fileid", s.fileID))
+		return nil, 0, 0, errors.New("file is nil")
+	}
+
+	offset, err = s.file.Seek(s.nowFileOffset, io.SeekStart)
+	if err != nil {
+		log.Error("file seek fail", log.Int64("offset", s.nowFileOffset), log.Err(err))
+		return nil, 0, 0, err
+	}
+
+	if int(offset)+needWriteSize > s.nowFileSize {
+		s.file.Close()
+
+		err = s.increaseFileID()
+		if err != nil {
+			log.Error("new file increase fileid fail.", log.Int("now fileid", s.fileID))
+			return nil, 0, 0, err
+		}
+
+		s.file, err = s.openFile(s.fileID)
+		if err != nil {
+			log.Error("new file open file fail", log.Int("now fileid", s.fileID))
+			return nil, 0, 0, err
+		}
+
+		offset, err = s.file.Seek(0, io.SeekStart)
+		if err != nil {
+			log.Error("increaseFileID success, but file exist, data wrong", log.Int("fileid", s.fileID), log.Int64("offset", offset))
+			return nil, 0, 0, err
+		}
+
+		s.nowFileSize, err = s.expandFile(s.file)
+		if err != nil {
+			log.Error("new file expand file fail", log.Int("now fileid", s.fileID))
+			s.file.Close()
+			return nil, 0, 0, err
+		}
+		log.Info("new file expand ok", log.Int("fileid", s.fileID), log.Int("filesize", s.nowFileSize))
+	}
+
+	file = s.file
+	fileID = s.fileID
+
+	return file, fileID, offset, nil
 }
