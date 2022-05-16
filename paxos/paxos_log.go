@@ -1,16 +1,29 @@
 package paxos
 
-type Database struct {
+type PaxosLog struct {
+	logStore LogStorage
 }
 
-func NewDatabase() *Database {
-
-}
-
-func (db *Database) GetMaxInstanceIDFileID() (string, uint64, error) {
+func NewPaxosLog(logStorage LogStorage) *PaxosLog {
 
 }
 
-func (db *Database) ReBuildOneIndex(instanceID uint64, fileID string) error {
+func (l *PaxosLog) WriteLog(options *WriteOptions, groupIdx int, instanceID uint64, value string) error {
+
+}
+
+func (l *PaxosLog) ReadLog(groupIdx int, instanceID uint64) (string, error) {
+
+}
+
+func (l *PaxosLog) GetMaxInstanceIDFromLog(groupIdx int) (uint64, error) {
+
+}
+
+func (l *PaxosLog) WriteState(options *WriteOptions, groupIdx int, instanceID uint64, state *AcceptorStateData) {
+
+}
+
+func (l *PaxosLog) ReadState(groupIdx int, instanceID uint64) (*AcceptorStateData, error) {
 
 }

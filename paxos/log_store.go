@@ -148,20 +148,152 @@ func (s *LogStore) Init(path string, myGroupIdx int, database *Database) error {
 	return nil
 }
 
-func (s *LogStore) Append() {
+func (s *LogStore) Append(options *WriteOptions, instanceID uint64, buffer string) (string, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 
+	dataLen := sizeOfUint64 + len(buffer)
+	tmpBufferLen := dataLen + sizeOfInt
+	file, fileID, offset, err := s.getFile(tmpBufferLen)
+	if err != nil {
+		return "", err
+	}
+
+	s.tmpAppendBuffer = make([]byte, 0, tmpBufferLen)
+	s.tmpAppendBuffer = append(s.tmpAppendBuffer, IntToBytes(dataLen)...)
+	s.tmpAppendBuffer = append(s.tmpAppendBuffer, IntToBytes(instanceID)...)
+	s.tmpAppendBuffer = append(s.tmpAppendBuffer, buffer...)
+
+	writeLen, err := file.Write(s.tmpAppendBuffer)
+	if err != nil || writeLen != tmpBufferLen {
+		log.Error("write buffer to file fail", log.Err(err), log.Int("write_len", writeLen), log.Int("buffer_size", tmpBufferLen))
+		return "", fmt.Errorf("write buffer to file fail %v", err)
+	}
+
+	if options.Sync {
+		err := file.Sync()
+		if err != nil {
+			log.Error("file sync fail", log.Int("write_len", writeLen), log.Err(err))
+			return "", err
+		}
+	}
+
+	s.nowFileOffset += int64(writeLen)
+
+	checkSum := Crc32(s.tmpAppendBuffer[:sizeOfInt])
+	fID := s.genFileID(fileID, offset, checkSum)
+	log.Info("append success", log.Int64("offset", offset),
+		log.Int("file_id", fileID),
+		log.Uint32("checksum", checkSum),
+		log.Uint64("instance_id", instanceID),
+		log.Int("buffer_size", len(buffer)),
+		log.Bool("sync", options.Sync))
+
+	return fID, nil
 }
 
-func (s *LogStore) Read() {
+func (s *LogStore) Read(fileID string) (uint64, string, error) {
+	fID, offset, checkSum, err := s.parseFileID(fileID)
+	if err != nil {
+		log.Error("parse fileid fail", log.String("file_id", fileID), log.Err(err))
+		return 0, "", err
+	}
 
+	file, err := s.openFile(fID)
+	if err != nil {
+		log.Error("open file fail", log.Int("file_id", fID), log.Err(err))
+		return 0, "", err
+	}
+	defer file.Close()
+
+	_, err = file.Seek(offset, io.SeekStart)
+	if err != nil {
+		log.Error("file seek fail", log.Int64("offset", offset), log.Err(err))
+		return 0, "", err
+	}
+
+	lenBuf := make([]byte, 0, sizeOfInt)
+	readLen, err := file.Read(lenBuf)
+	if err != nil || readLen != sizeOfInt {
+		log.Error("read file len fail", log.Err(err), log.Int("read_len", readLen))
+		return 0, "", fmt.Errorf("read file len fail %v", err)
+	}
+
+	s.readMutex.RLock()
+	defer s.readMutex.RUnlock()
+
+	dataLen := binary.BigEndian.Uint64(lenBuf)
+	s.tmpBuffer = make([]byte, 0, dataLen)
+	readLen, err = file.Read(s.tmpBuffer)
+	if err != nil || readLen != int(dataLen) {
+		log.Error("read data len fail", log.Err(err), log.Int("read_len", readLen))
+		return 0, "", fmt.Errorf("read data len fail %v", err)
+	}
+
+	fileCheckSum := Crc32(s.tmpBuffer)
+	if fileCheckSum != checkSum {
+		log.Error("checksum not equal", log.Uint32("file_checksum", fileCheckSum), log.Uint32("checksum", checkSum))
+		return 0, "", errors.New("checksum not equal")
+	}
+
+	instanceIDBuf := s.tmpBuffer[:sizeOfUint64]
+	instanceID := binary.BigEndian.Uint64(instanceIDBuf)
+	buffer := string(s.tmpBuffer[sizeOfUint64:])
+
+	log.Info("read success", log.Int("file_id", fID),
+		log.Int64("offset", offset),
+		log.Uint64("instance_id", instanceID),
+		log.Int("buffer_size", len(buffer)))
+	return instanceID, buffer, nil
 }
 
-func (s *LogStore) Del() {
+func (s *LogStore) Del(fileID string) error {
+	fID, _, _, err := s.parseFileID(fileID)
+	if err != nil {
+		log.Error("parse fileid fail", log.String("file_id", fileID), log.Err(err))
+		return err
+	}
+	if fID > s.fileID {
+		log.Error("del file_id large than using file_id",
+			log.Int("del_file_id", fID),
+			log.Int("using_file_id", s.fileID))
+		return errors.New("invalid fileid")
+	}
 
+	if fID > 0 {
+		return s.deleteFile(fID)
+	}
+
+	return nil
 }
 
-func (s *LogStore) ForceDel() {
+func (s *LogStore) ForceDel(fileID string) error {
+	fID, offset, _, err := s.parseFileID(fileID)
+	if err != nil {
+		log.Error("parse fileid fail", log.String("file_id", fileID), log.Err(err))
+		return err
+	}
 
+	if fID != s.fileID {
+		log.Error("del file_id not equal to file_id",
+			log.Int("del_file_id", fID),
+			log.Int("file_id", s.fileID))
+		return errors.New("invalid fileid")
+	}
+
+	f, err := s.openFile(fID)
+	if err != nil {
+		log.Error("open file fail", log.Int("file_id", fID), log.Err(err))
+		return err
+	}
+	defer f.Close()
+
+	err = f.Truncate(offset)
+	if err != nil {
+		log.Error("truncate fail", log.Int64("offset", offset), log.Err(err))
+		return err
+	}
+	return nil
 }
 
 func (s *LogStore) IsValidFileID(fileID string) bool {
