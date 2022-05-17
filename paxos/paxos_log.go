@@ -1,11 +1,11 @@
 package paxos
 
 type PaxosLog struct {
-	logStore LogStorage
+	logStorage LogStorage
 }
 
 func NewPaxosLog(logStorage LogStorage) *PaxosLog {
-
+	return &PaxosLog{logStorage: logStorage}
 }
 
 func (l *PaxosLog) WriteLog(options *WriteOptions, groupIdx int, instanceID uint64, value string) error {

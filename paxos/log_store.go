@@ -325,8 +325,8 @@ func (s *LogStore) RebuildIndex(database *Database) (int64, error) {
 	}
 
 	if fileID > s.fileID {
-		log.Error("db last file_id larger than meta now file_id, file error",
-			log.Int("db last file_id", fileID),
+		log.Error("pebbleKV last file_id larger than meta now file_id, file error",
+			log.Int("pebbleKV last file_id", fileID),
 			log.Int("meta file_id", s.fileID))
 		return 0, errors.New("invalid file id")
 	}
