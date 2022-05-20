@@ -166,3 +166,7 @@ func (i *InsideOptions) GetCleanerDeleteQps() int {
 func LogFileMaxSize() int {
 	return InsideOptionsInstance().GetLogFileMaxSize()
 }
+
+func MaxValueSize() int {
+	return InsideOptionsInstance().GetMaxBufferSize()
+}

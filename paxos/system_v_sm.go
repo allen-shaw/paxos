@@ -4,7 +4,7 @@ import "github.com/AllenShaw19/paxos/log"
 
 type SystemVSM struct {
 	myGroupIdx      int
-	systemVariables SystemVariables
+	systemVariables *SystemVariables
 	systemVStore    *SystemVariablesStore
 
 	nodeIDs  map[NodeID]struct{}
@@ -26,7 +26,8 @@ func NewSystemVSM(groupIdx int,
 }
 
 func (sm *SystemVSM) Init() error {
-	err := sm.systemVStore.Read(sm.myGroupIdx, &sm.systemVariables)
+	var err error
+	sm.systemVariables, err = sm.systemVStore.Read(sm.myGroupIdx)
 	if err != nil && err != ErrNotExist {
 		return err
 	}
@@ -53,7 +54,7 @@ func (sm *SystemVSM) UpdateSystemVariables(variables *SystemVariables) error {
 		return err
 	}
 
-	sm.systemVariables = *variables
+	sm.systemVariables = variables
 
 }
 
@@ -77,4 +78,8 @@ func (sm *SystemVSM) AddNodeIDList(nodeInfos NodeInfoList) {
 
 func (sm *SystemVSM) RefleshNodeID() {
 
+}
+
+func (sm *SystemVSM) GetMembershipMap() map[NodeID]struct{} {
+	return sm.nodeIDs
 }

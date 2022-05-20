@@ -6,8 +6,8 @@ const nilNode NodeID = 0
 
 type NodeInfo struct {
 	nodeID NodeID
-	ip     string
-	port   int
+	IP     string
+	Port   int
 }
 
 func NewNodeInfo() *NodeInfo {
@@ -23,18 +23,6 @@ func NewNodeInfoWithAddr(ip string, port int) *NodeInfo {
 }
 
 func (i *NodeInfo) GetNodeID() NodeID {
-
-}
-
-func (i *NodeInfo) GetIP() string {
-
-}
-
-func (i *NodeInfo) GetPort() int {
-
-}
-
-func (i *NodeInfo) SetIPPort(ip string, port int) {
 
 }
 
@@ -126,11 +114,11 @@ type Options struct {
 	GroupCount int
 
 	//required
-	//Self node's ip/port.
+	//Self node's IP/Port.
 	MyNode NodeInfo
 
 	//required
-	//All nodes's ip/port with a paxos set(usually three or five nodes).
+	//All nodes's IP/Port with a paxos set(usually three or five nodes).
 	NodeInfoList NodeInfoList
 
 	//optional
@@ -169,7 +157,7 @@ type Options struct {
 	IsLargeValueMode bool
 
 	//optional
-	//All followers's ip/port, and follow to node's ip/port.
+	//All followers's IP/Port, and follow to node's IP/Port.
 	//Follower only learn but not participation paxos algorithmic process.
 	//Default is empty.
 	FollowerNodeInfos FollowerNodeInfoList

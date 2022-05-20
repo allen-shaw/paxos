@@ -5,32 +5,34 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-type SystemVariablesStore struct {
+type MasterVariablesStore struct {
 	logStorage LogStorage
 }
 
-func NewSystemVariablesStore(logStorage LogStorage) *SystemVariablesStore {
-	return &SystemVariablesStore{logStorage: logStorage}
+func NewMasterVariablesStore(logStorage LogStorage) *MasterVariablesStore {
+	return &MasterVariablesStore{
+		logStorage: logStorage,
+	}
 }
 
-func (s *SystemVariablesStore) Write(options *WriteOptions, groupIdx int, variables *SystemVariables) error {
+func (s *MasterVariablesStore) Write(options *WriteOptions, groupIdx int, variables *MasterVariables) error {
 	buff, err := proto.Marshal(variables)
 	if err != nil {
 		log.Error("variables marshal fail", log.Err(err))
 		return err
 	}
 
-	err = s.logStorage.SetSystemVariables(options, groupIdx, string(buff))
+	err = s.logStorage.SetMasterVariables(options, groupIdx, string(buff))
 	if err != nil {
-		log.Error("log storage set fail", log.Int("group_idx", groupIdx), log.Int("buffer size", len(buff)), log.Err(err))
+		log.Error("log storage set master variables fail", log.Int("group_idx", groupIdx), log.Int("buffer size", len(buff)), log.Err(err))
 		return err
 	}
 
 	return nil
 }
 
-func (s *SystemVariablesStore) Read(groupIdx int) (*SystemVariables, error) {
-	buff, err := s.logStorage.GetSystemVariables(groupIdx)
+func (s *MasterVariablesStore) Read(groupIdx int) (*MasterVariables, error) {
+	buff, err := s.logStorage.GetMasterVariables(groupIdx)
 	if err != nil && err != ErrNotExist {
 		log.Error("log storage get fail", log.Int("group_idx", groupIdx), log.Err(err))
 		return nil, err
@@ -40,7 +42,7 @@ func (s *SystemVariablesStore) Read(groupIdx int) (*SystemVariables, error) {
 		return nil, ErrNotExist
 	}
 
-	variables := &SystemVariables{}
+	variables := &MasterVariables{}
 	err = proto.Unmarshal([]byte(buff), variables)
 	if err != nil {
 		log.Error("buff proto unmarshal fail", log.Err(err))

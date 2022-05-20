@@ -54,8 +54,8 @@ func NewConfig(logStorage LogStorage,
 		followerNodeID := followerNodeInfo.MyNode.GetNodeID()
 		if followerNodeID == myNode.GetNodeID() {
 			log.Info("Iam follower.",
-				log.String("ip", myNode.GetIP()),
-				log.Int("port", myNode.GetPort()),
+				log.String("IP", myNode.GetIP()),
+				log.Int("Port", myNode.GetPort()),
 				log.Int("nodeid", myNode.GetNodeID()))
 			c.isFollower = true
 			c.followToNodeID = followerNodeID
@@ -116,6 +116,10 @@ func (c *Config) LogSync() bool {}
 func (c *Config) SyncInterval() int {}
 
 func (c *Config) SetLogSync(logSync bool) bool {}
+
+func (c *Config) GetSystemVSM() *SystemVSM {
+	return c.systemVSM
+}
 
 func (c *Config) SetMasterSM(masterSM *InsideSM) {
 
