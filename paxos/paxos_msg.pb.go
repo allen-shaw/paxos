@@ -25,10 +25,10 @@ type Header struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Gid     uint64 `protobuf:"varint,1,opt,name=gid,proto3" json:"gid,omitempty"`
-	Rid     uint64 `protobuf:"varint,2,opt,name=rid,proto3" json:"rid,omitempty"`
-	CmdId   int32  `protobuf:"varint,3,opt,name=cmdId,proto3" json:"cmdId,omitempty"`
-	Version int32  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	Gid     uint64 `protobuf:"varint,1,opt,GetCheckpointReplayer=gid,proto3" json:"gid,omitempty"`
+	Rid     uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=rid,proto3" json:"rid,omitempty"`
+	CmdId   int32  `protobuf:"varint,3,opt,GetCheckpointReplayer=cmdId,proto3" json:"cmdId,omitempty"`
+	Version int32  `protobuf:"varint,4,opt,GetCheckpointReplayer=version,proto3" json:"version,omitempty"`
 }
 
 func (x *Header) Reset() {
@@ -96,21 +96,21 @@ type PaxosMsg struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MsgType             int32  `protobuf:"varint,1,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
-	InstanceID          uint64 `protobuf:"varint,2,opt,name=InstanceID,proto3" json:"InstanceID,omitempty"`
-	NodeID              uint64 `protobuf:"varint,3,opt,name=NodeID,proto3" json:"NodeID,omitempty"`
-	ProposalID          uint64 `protobuf:"varint,4,opt,name=ProposalID,proto3" json:"ProposalID,omitempty"`
-	ProposalNodeID      uint64 `protobuf:"varint,5,opt,name=ProposalNodeID,proto3" json:"ProposalNodeID,omitempty"`
-	Value               []byte `protobuf:"bytes,6,opt,name=Value,proto3" json:"Value,omitempty"`
-	PreAcceptID         uint64 `protobuf:"varint,7,opt,name=PreAcceptID,proto3" json:"PreAcceptID,omitempty"`
-	PreAcceptNodeID     uint64 `protobuf:"varint,8,opt,name=PreAcceptNodeID,proto3" json:"PreAcceptNodeID,omitempty"`
-	RejectByPromiseID   uint64 `protobuf:"varint,9,opt,name=RejectByPromiseID,proto3" json:"RejectByPromiseID,omitempty"`
-	NowInstanceID       uint64 `protobuf:"varint,10,opt,name=NowInstanceID,proto3" json:"NowInstanceID,omitempty"`
-	MinChosenInstanceID uint64 `protobuf:"varint,11,opt,name=MinChosenInstanceID,proto3" json:"MinChosenInstanceID,omitempty"`
-	LastChecksum        uint32 `protobuf:"varint,12,opt,name=LastChecksum,proto3" json:"LastChecksum,omitempty"`
-	Flag                uint32 `protobuf:"varint,13,opt,name=Flag,proto3" json:"Flag,omitempty"`
-	SystemVariables     []byte `protobuf:"bytes,14,opt,name=SystemVariables,proto3" json:"SystemVariables,omitempty"`
-	MasterVariables     []byte `protobuf:"bytes,15,opt,name=MasterVariables,proto3" json:"MasterVariables,omitempty"`
+	MsgType             int32  `protobuf:"varint,1,opt,GetCheckpointReplayer=MsgType,proto3" json:"MsgType,omitempty"`
+	InstanceID          uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=InstanceID,proto3" json:"InstanceID,omitempty"`
+	NodeID              uint64 `protobuf:"varint,3,opt,GetCheckpointReplayer=nodeID,proto3" json:"nodeID,omitempty"`
+	ProposalID          uint64 `protobuf:"varint,4,opt,GetCheckpointReplayer=ProposalID,proto3" json:"ProposalID,omitempty"`
+	ProposalNodeID      uint64 `protobuf:"varint,5,opt,GetCheckpointReplayer=ProposalNodeID,proto3" json:"ProposalNodeID,omitempty"`
+	Value               []byte `protobuf:"bytes,6,opt,GetCheckpointReplayer=Value,proto3" json:"Value,omitempty"`
+	PreAcceptID         uint64 `protobuf:"varint,7,opt,GetCheckpointReplayer=PreAcceptID,proto3" json:"PreAcceptID,omitempty"`
+	PreAcceptNodeID     uint64 `protobuf:"varint,8,opt,GetCheckpointReplayer=PreAcceptNodeID,proto3" json:"PreAcceptNodeID,omitempty"`
+	RejectByPromiseID   uint64 `protobuf:"varint,9,opt,GetCheckpointReplayer=RejectByPromiseID,proto3" json:"RejectByPromiseID,omitempty"`
+	NowInstanceID       uint64 `protobuf:"varint,10,opt,GetCheckpointReplayer=NowInstanceID,proto3" json:"NowInstanceID,omitempty"`
+	MinChosenInstanceID uint64 `protobuf:"varint,11,opt,GetCheckpointReplayer=MinChosenInstanceID,proto3" json:"MinChosenInstanceID,omitempty"`
+	LastChecksum        uint32 `protobuf:"varint,12,opt,GetCheckpointReplayer=LastChecksum,proto3" json:"LastChecksum,omitempty"`
+	Flag                uint32 `protobuf:"varint,13,opt,GetCheckpointReplayer=Flag,proto3" json:"Flag,omitempty"`
+	SystemVariables     []byte `protobuf:"bytes,14,opt,GetCheckpointReplayer=SystemVariables,proto3" json:"SystemVariables,omitempty"`
+	MasterVariables     []byte `protobuf:"bytes,15,opt,GetCheckpointReplayer=MasterVariables,proto3" json:"MasterVariables,omitempty"`
 }
 
 func (x *PaxosMsg) Reset() {
@@ -255,17 +255,17 @@ type CheckpointMsg struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MsgType              int32  `protobuf:"varint,1,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
-	NodeID               uint64 `protobuf:"varint,2,opt,name=NodeID,proto3" json:"NodeID,omitempty"`
-	Flag                 int32  `protobuf:"varint,3,opt,name=Flag,proto3" json:"Flag,omitempty"`
-	UUID                 uint64 `protobuf:"varint,4,opt,name=UUID,proto3" json:"UUID,omitempty"`
-	Sequence             uint64 `protobuf:"varint,5,opt,name=Sequence,proto3" json:"Sequence,omitempty"`
-	CheckpointInstanceID uint64 `protobuf:"varint,6,opt,name=CheckpointInstanceID,proto3" json:"CheckpointInstanceID,omitempty"`
-	Checksum             uint32 `protobuf:"varint,7,opt,name=Checksum,proto3" json:"Checksum,omitempty"`
-	FilePath             string `protobuf:"bytes,8,opt,name=FilePath,proto3" json:"FilePath,omitempty"`
-	SMID                 int32  `protobuf:"varint,9,opt,name=SMID,proto3" json:"SMID,omitempty"`
-	Offset               uint64 `protobuf:"varint,10,opt,name=Offset,proto3" json:"Offset,omitempty"`
-	Buffer               []byte `protobuf:"bytes,11,opt,name=Buffer,proto3" json:"Buffer,omitempty"`
+	MsgType              int32  `protobuf:"varint,1,opt,GetCheckpointReplayer=MsgType,proto3" json:"MsgType,omitempty"`
+	NodeID               uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=nodeID,proto3" json:"nodeID,omitempty"`
+	Flag                 int32  `protobuf:"varint,3,opt,GetCheckpointReplayer=Flag,proto3" json:"Flag,omitempty"`
+	UUID                 uint64 `protobuf:"varint,4,opt,GetCheckpointReplayer=UUID,proto3" json:"UUID,omitempty"`
+	Sequence             uint64 `protobuf:"varint,5,opt,GetCheckpointReplayer=Sequence,proto3" json:"Sequence,omitempty"`
+	CheckpointInstanceID uint64 `protobuf:"varint,6,opt,GetCheckpointReplayer=CheckpointInstanceID,proto3" json:"CheckpointInstanceID,omitempty"`
+	Checksum             uint32 `protobuf:"varint,7,opt,GetCheckpointReplayer=Checksum,proto3" json:"Checksum,omitempty"`
+	FilePath             string `protobuf:"bytes,8,opt,GetCheckpointReplayer=FilePath,proto3" json:"FilePath,omitempty"`
+	SMID                 int32  `protobuf:"varint,9,opt,GetCheckpointReplayer=SMID,proto3" json:"SMID,omitempty"`
+	Offset               uint64 `protobuf:"varint,10,opt,GetCheckpointReplayer=Offset,proto3" json:"Offset,omitempty"`
+	Buffer               []byte `protobuf:"bytes,11,opt,GetCheckpointReplayer=Buffer,proto3" json:"Buffer,omitempty"`
 }
 
 func (x *CheckpointMsg) Reset() {
@@ -382,13 +382,13 @@ type AcceptorStateData struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	InstanceID     uint64 `protobuf:"varint,1,opt,name=InstanceID,proto3" json:"InstanceID,omitempty"`
-	PromiseID      uint64 `protobuf:"varint,2,opt,name=PromiseID,proto3" json:"PromiseID,omitempty"`
-	PromiseNodeID  uint64 `protobuf:"varint,3,opt,name=PromiseNodeID,proto3" json:"PromiseNodeID,omitempty"`
-	AcceptedID     uint64 `protobuf:"varint,4,opt,name=AcceptedID,proto3" json:"AcceptedID,omitempty"`
-	AcceptedNodeID uint64 `protobuf:"varint,5,opt,name=AcceptedNodeID,proto3" json:"AcceptedNodeID,omitempty"`
-	AcceptedValue  []byte `protobuf:"bytes,6,opt,name=AcceptedValue,proto3" json:"AcceptedValue,omitempty"`
-	Checksum       uint32 `protobuf:"varint,7,opt,name=Checksum,proto3" json:"Checksum,omitempty"`
+	InstanceID     uint64 `protobuf:"varint,1,opt,GetCheckpointReplayer=InstanceID,proto3" json:"InstanceID,omitempty"`
+	PromiseID      uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=PromiseID,proto3" json:"PromiseID,omitempty"`
+	PromiseNodeID  uint64 `protobuf:"varint,3,opt,GetCheckpointReplayer=PromiseNodeID,proto3" json:"PromiseNodeID,omitempty"`
+	AcceptedID     uint64 `protobuf:"varint,4,opt,GetCheckpointReplayer=AcceptedID,proto3" json:"AcceptedID,omitempty"`
+	AcceptedNodeID uint64 `protobuf:"varint,5,opt,GetCheckpointReplayer=AcceptedNodeID,proto3" json:"AcceptedNodeID,omitempty"`
+	AcceptedValue  []byte `protobuf:"bytes,6,opt,GetCheckpointReplayer=AcceptedValue,proto3" json:"AcceptedValue,omitempty"`
+	Checksum       uint32 `protobuf:"varint,7,opt,GetCheckpointReplayer=Checksum,proto3" json:"Checksum,omitempty"`
 }
 
 func (x *AcceptorStateData) Reset() {
@@ -477,8 +477,8 @@ type PaxosNodeInfo struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Rid    uint64 `protobuf:"varint,1,opt,name=Rid,proto3" json:"Rid,omitempty"`
-	NodeId uint64 `protobuf:"varint,2,opt,name=NodeId,proto3" json:"NodeId,omitempty"`
+	Rid    uint64 `protobuf:"varint,1,opt,GetCheckpointReplayer=Rid,proto3" json:"Rid,omitempty"`
+	NodeId uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=NodeId,proto3" json:"NodeId,omitempty"`
 }
 
 func (x *PaxosNodeInfo) Reset() {
@@ -532,9 +532,9 @@ type SystemVariables struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Gid        uint64           `protobuf:"varint,1,opt,name=Gid,proto3" json:"Gid,omitempty"`
-	MemberShip []*PaxosNodeInfo `protobuf:"bytes,2,rep,name=MemberShip,proto3" json:"MemberShip,omitempty"`
-	Version    uint64           `protobuf:"varint,3,opt,name=Version,proto3" json:"Version,omitempty"`
+	Gid        uint64           `protobuf:"varint,1,opt,GetCheckpointReplayer=Gid,proto3" json:"Gid,omitempty"`
+	MemberShip []*PaxosNodeInfo `protobuf:"bytes,2,rep,GetCheckpointReplayer=MemberShip,proto3" json:"MemberShip,omitempty"`
+	Version    uint64           `protobuf:"varint,3,opt,GetCheckpointReplayer=Version,proto3" json:"Version,omitempty"`
 }
 
 func (x *SystemVariables) Reset() {
@@ -595,9 +595,9 @@ type MasterVariables struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MasterNodeId uint64 `protobuf:"varint,1,opt,name=MasterNodeId,proto3" json:"MasterNodeId,omitempty"`
-	Version      uint64 `protobuf:"varint,2,opt,name=Version,proto3" json:"Version,omitempty"`
-	LeaseTime    uint32 `protobuf:"varint,3,opt,name=LeaseTime,proto3" json:"LeaseTime,omitempty"`
+	MasterNodeId uint64 `protobuf:"varint,1,opt,GetCheckpointReplayer=MasterNodeId,proto3" json:"MasterNodeId,omitempty"`
+	Version      uint64 `protobuf:"varint,2,opt,GetCheckpointReplayer=Version,proto3" json:"Version,omitempty"`
+	LeaseTime    uint32 `protobuf:"varint,3,opt,GetCheckpointReplayer=LeaseTime,proto3" json:"LeaseTime,omitempty"`
 }
 
 func (x *MasterVariables) Reset() {
@@ -658,8 +658,8 @@ type PaxosValue struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	SMID  int32  `protobuf:"varint,1,opt,name=SMID,proto3" json:"SMID,omitempty"`
-	Value []byte `protobuf:"bytes,2,opt,name=Value,proto3" json:"Value,omitempty"`
+	SMID  int32  `protobuf:"varint,1,opt,GetCheckpointReplayer=SMID,proto3" json:"SMID,omitempty"`
+	Value []byte `protobuf:"bytes,2,opt,GetCheckpointReplayer=Value,proto3" json:"Value,omitempty"`
 }
 
 func (x *PaxosValue) Reset() {
@@ -713,7 +713,7 @@ type BatchPaxosValues struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Values []*PaxosValue `protobuf:"bytes,1,rep,name=Values,proto3" json:"Values,omitempty"`
+	Values []*PaxosValue `protobuf:"bytes,1,rep,GetCheckpointReplayer=Values,proto3" json:"Values,omitempty"`
 }
 
 func (x *BatchPaxosValues) Reset() {

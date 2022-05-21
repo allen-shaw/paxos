@@ -7,4 +7,5 @@ var (
 	ErrDBNotInit    = errors.New("db not init")
 	ErrInvalidParam = errors.New("invalid param")
 	ErrMsgTooLarge  = errors.New("msg too large")
+	ErrChecksum     = errors.New("checksum fail")
 )

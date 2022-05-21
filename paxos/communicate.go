@@ -20,7 +20,7 @@ func NewCommunicate(config *Config, netWork NetWork, myNodeID NodeID) *Communica
 }
 
 func (c *Communicate) SendMessage(groupIdx int, sendToNodeID NodeID, message string) error {
-	return c.send(groupIdx, NewNodeInfoWithNodeID(sendToNodeID), message)
+	return c.send(groupIdx, NewNodeInfo(sendToNodeID), message)
 }
 
 func (c *Communicate) BroadcastMessage(groupIdx int, message string) error {
@@ -33,7 +33,7 @@ func (c *Communicate) BroadcastMessage(groupIdx int, message string) error {
 			wg.Add(1)
 			go func(nodeID NodeID) {
 				defer wg.Done()
-				c.send(groupIdx, NewNodeInfoWithNodeID(nodeID), message)
+				c.send(groupIdx, NewNodeInfo(nodeID), message)
 			}(nodeID)
 		}
 	}
@@ -52,7 +52,7 @@ func (c *Communicate) BroadcastMessageFollower(groupIdx int, message string) err
 			wg.Add(1)
 			go func(nodeID NodeID) {
 				defer wg.Done()
-				c.send(groupIdx, NewNodeInfoWithNodeID(nodeID), message)
+				c.send(groupIdx, NewNodeInfo(nodeID), message)
 			}(nodeID)
 		}
 	}
@@ -71,7 +71,7 @@ func (c *Communicate) BroadcastMessageTempNode(groupIdx int, message string) err
 			wg.Add(1)
 			go func(nodeID NodeID) {
 				defer wg.Done()
-				c.send(groupIdx, NewNodeInfoWithNodeID(nodeID), message)
+				c.send(groupIdx, NewNodeInfo(nodeID), message)
 			}(nodeID)
 		}
 	}
@@ -87,5 +87,5 @@ func (c *Communicate) send(groupIdx int, nodeInfo *NodeInfo, message string) err
 		return ErrMsgTooLarge
 	}
 
-	return c.netWork.SendMessage(groupIdx, nodeInfo.IP, nodeInfo.Port, message)
+	return c.netWork.SendMessage(groupIdx, nodeInfo.ip, nodeInfo.port, message)
 }

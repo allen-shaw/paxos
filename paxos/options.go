@@ -1,41 +1,65 @@
 package paxos
 
+import (
+	"encoding/binary"
+	"net"
+)
+
 type NodeID uint64
 
 const nilNode NodeID = 0
 
 type NodeInfo struct {
 	nodeID NodeID
-	IP     string
-	Port   int
+	ip     string
+	port   int
 }
 
-func NewNodeInfo() *NodeInfo {
-
-}
-
-func NewNodeInfoWithNodeID(nodeID NodeID) *NodeInfo {
-
+func NewNodeInfo(nodeID NodeID) *NodeInfo {
+	i := &NodeInfo{nodeID: nodeID}
+	i.makeNodeID()
+	return i
 }
 
 func NewNodeInfoWithAddr(ip string, port int) *NodeInfo {
-
-}
-
-func (i *NodeInfo) GetNodeID() NodeID {
-
+	i := &NodeInfo{ip: ip, port: port}
+	i.parseNodeID()
+	return i
 }
 
 func (i *NodeInfo) SetNodeID(nodeID NodeID) {
+	i.nodeID = nodeID
+	i.parseNodeID()
+}
 
+func (i *NodeInfo) GetNodeId() NodeID {
+	return i.nodeID
+}
+
+func (i *NodeInfo) SetIPPort(ip string, port int) {
+	i.ip = ip
+	i.port = port
+	i.makeNodeID()
+}
+
+func (i *NodeInfo) GetIP() string {
+	return i.ip
+}
+
+func (i *NodeInfo) GetPort() int {
+	return i.port
 }
 
 func (i *NodeInfo) makeNodeID() {
-
+	ip := net.ParseIP(i.ip)
+	i.nodeID = NodeID(binary.BigEndian.Uint64(ip)<<32 | uint64(i.port))
 }
 
 func (i *NodeInfo) parseNodeID() {
-
+	i.port = int(i.nodeID & 0xffffffff)
+	ipBuff := make([]byte, 0, 4)
+	binary.BigEndian.PutUint32(ipBuff, uint32(i.nodeID>>32))
+	i.ip = net.IPv4(ipBuff[0], ipBuff[1], ipBuff[2], ipBuff[3]).String()
 }
 
 type FollowerNodeInfo struct {
@@ -64,7 +88,7 @@ type GroupSMInfo struct {
 }
 
 func NewGroupSMInfo() *GroupSMInfo {
-
+	return &GroupSMInfo{GroupIdx: -1, IsUseMaster: false}
 }
 
 type GroupSMInfoList []GroupSMInfo
@@ -86,7 +110,6 @@ type Options struct {
 	//If true, the write will be flushed from the operating system
 	//buffer cache before the write is considered complete.
 	//If this flag is true, writes will be slower.
-	//
 	//If this flag is false, and the machine crashes, some recent
 	//writes may be lost. Note that if it is just the process that
 	//crashes (i.e., the machine does not reboot), no writes will be
@@ -103,8 +126,8 @@ type Options struct {
 
 	//optional
 	//User-specified network.
-	//NetWork * poNetWork;
-	server Server
+	//NetWork NetWork;
+	NetWork NetWork
 
 	//optional
 	//We support to run multi paxos on one process.
@@ -114,11 +137,11 @@ type Options struct {
 	GroupCount int
 
 	//required
-	//Self node's IP/Port.
+	//Self node's ip/port.
 	MyNode NodeInfo
 
 	//required
-	//All nodes's IP/Port with a paxos set(usually three or five nodes).
+	//All nodes's ip/port with a paxos set(usually three or five nodes).
 	NodeInfoList NodeInfoList
 
 	//optional
@@ -157,7 +180,7 @@ type Options struct {
 	IsLargeValueMode bool
 
 	//optional
-	//All followers's IP/Port, and follow to node's IP/Port.
+	//All followers's ip/port, and follow to node's ip/port.
 	//Follower only learn but not participation paxos algorithmic process.
 	//Default is empty.
 	FollowerNodeInfos FollowerNodeInfoList
@@ -176,4 +199,17 @@ type Options struct {
 	//Only OpenChangeValueBeforePropose is true, that will callback sm's function(BeforePropose).
 	//Default is false;
 	OpenChangeValueBeforePropose bool
+}
+
+func NewOptions() *Options {
+	return &Options{
+		Sync:                         true,
+		SyncInterval:                 0,
+		GroupCount:                   1,
+		UseMembership:                false,
+		IsLargeValueMode:             false,
+		UseCheckpointReplayer:        false,
+		UseBatchPropose:              false,
+		OpenChangeValueBeforePropose: false,
+	}
 }

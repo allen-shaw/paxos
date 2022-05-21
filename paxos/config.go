@@ -39,11 +39,11 @@ func NewConfig(logStorage LogStorage,
 	c.logSync = logSync
 	c.syncInterval = syncInterval
 	c.useMembership = useMembership
-	c.myNodeID = myNode.GetNodeID()
+	c.myNodeID = myNode.GetNodeId()
 	c.nodeCount = len(nodeInfos)
 	c.myGroupIdx = myGroupIdx
 	c.groupCount = groupCount
-	c.systemVSM = NewSystemVSM(myGroupIdx, myNode.GetNodeID(), logStorage, callback)
+	c.systemVSM = NewSystemVSM(myGroupIdx, myNode.GetNodeId(), logStorage, callback)
 	c.masterSM = nil
 
 	c.nodeInfos = nodeInfos
@@ -51,12 +51,12 @@ func NewConfig(logStorage LogStorage,
 	c.followToNodeID = nilNode
 
 	for _, followerNodeInfo := range followerNodeInfos {
-		followerNodeID := followerNodeInfo.MyNode.GetNodeID()
-		if followerNodeID == myNode.GetNodeID() {
+		followerNodeID := followerNodeInfo.MyNode.GetNodeId()
+		if followerNodeID == myNode.GetNodeId() {
 			log.Info("Iam follower.",
-				log.String("IP", myNode.GetIP()),
-				log.Int("Port", myNode.GetPort()),
-				log.Int("nodeid", myNode.GetNodeID()))
+				log.String("ip", myNode.ip),
+				log.Int("port", myNode.port),
+				log.Uint64("nodeid", uint64(myNode.GetNodeId())))
 			c.isFollower = true
 			c.followToNodeID = followerNodeID
 			InsideOptionsInstance().SetAsFollower()
@@ -81,8 +81,8 @@ func (c *Config) Check() bool {
 
 }
 
-func (c *Config) GetGid() int64 {
-
+func (c *Config) GetGid() uint64 {
+	return c.systemVSM.GetGid()
 }
 
 func (c *Config) GetMyNodeID() NodeID {
