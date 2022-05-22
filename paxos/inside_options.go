@@ -170,3 +170,19 @@ func LogFileMaxSize() int {
 func MaxValueSize() int {
 	return InsideOptionsInstance().GetMaxBufferSize()
 }
+
+func StartPrepareTimeoutMs() int {
+	return InsideOptionsInstance().GetStartPrepareTimeoutMs()
+}
+
+func StartAcceptTimeoutMs() int {
+	return InsideOptionsInstance().GetStartAcceptTimeoutMs()
+}
+
+func MaxPrepareTimeoutMs() int {
+	return InsideOptionsInstance().GetMaxPrepareTimeoutMs()
+}
+
+func MaxAcceptTimeoutMs() int {
+	return InsideOptionsInstance().GetMaxAcceptTimeoutMs()
+}

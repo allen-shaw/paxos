@@ -13,3 +13,7 @@ func NewLearner(config *Config,
 	smFac *SMFac) *Learner {
 
 }
+
+func (l *Learner) ProposerSendSuccess(learnInstanceID, proposalID uint64) {
+
+}

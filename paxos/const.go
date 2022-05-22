@@ -37,3 +37,12 @@ const (
 	MsgTypePaxosLearnerAskForCheckpoint    = 12
 	MsgTypePaxosLearnerOnAskForCheckpoint  = 13
 )
+
+type TimerType int
+
+const (
+	TimerProposerPrepareTimeout TimerType = 1
+	TimerProposerAcceptTimeout            = 2
+	TimerLearnerAskForLearnNoop           = 3
+	TimerInstanceCommitTimeout            = 4
+)
