@@ -163,10 +163,6 @@ func (i *InsideOptions) GetCleanerDeleteQps() int {
 	return 300000 / i.groupCount
 }
 
-func LogFileMaxSize() int {
-	return InsideOptionsInstance().GetLogFileMaxSize()
-}
-
 func MaxValueSize() int {
 	return InsideOptionsInstance().GetMaxBufferSize()
 }
@@ -185,4 +181,40 @@ func MaxPrepareTimeoutMs() int {
 
 func MaxAcceptTimeoutMs() int {
 	return InsideOptionsInstance().GetMaxAcceptTimeoutMs()
+}
+
+func QueueMaxlength() int {
+	return InsideOptionsInstance().GetMaxIOLoopQueueLen()
+}
+
+func AskForLearnNoopInterval() int {
+	return InsideOptionsInstance().GetAskForLearnInterval()
+}
+
+func LearnerSenderPrepareTimeout() int {
+	return InsideOptionsInstance().GetLearnerSenderPrepareTimeoutMs()
+}
+
+func LearnerSenderAckTimeout() int {
+	return InsideOptionsInstance().GetLearnerSenderAckTimeoutMs()
+}
+
+func LearnerSenderAckLead() int {
+	return InsideOptionsInstance().GetLearnerSenderAckLead()
+}
+
+func LearnerReceiverAckLead() int {
+	return InsideOptionsInstance().GetLearnerReceiverAckLead()
+}
+
+func LogFileMaxSize() int {
+	return InsideOptionsInstance().GetLogFileMaxSize()
+}
+
+func LearnerSenderSendQps() int {
+	return InsideOptionsInstance().GetLearnerSenderSendQps()
+}
+
+func CleanerDeleteQps() int {
+	return InsideOptionsInstance().GetCleanerDeleteQps()
 }

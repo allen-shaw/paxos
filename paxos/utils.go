@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"os"
+	"time"
 )
 
 func IsDir(path string) bool {
@@ -58,4 +59,8 @@ func IntToBytes(i interface{}) []byte {
 	default:
 		return nil
 	}
+}
+
+func GetCurrentTimeMs() uint64 {
+	return uint64(time.Now().UnixNano() / 1e6)
 }
