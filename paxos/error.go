@@ -8,4 +8,5 @@ var (
 	ErrInvalidParam = errors.New("invalid param")
 	ErrMsgTooLarge  = errors.New("msg too large")
 	ErrChecksum     = errors.New("checksum fail")
+	ErrNotMajority  = errors.New("no majority")
 )
