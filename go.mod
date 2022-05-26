@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/cockroachdb/pebble v0.0.0-20220513193540-b8c9a560bed5
+	github.com/go-errors/errors v1.0.1
 	github.com/golang/protobuf v1.5.2
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.28.0

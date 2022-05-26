@@ -28,6 +28,8 @@ func IsExists(path string) bool {
 
 func Crc32(data interface{}) uint32 {
 	switch data.(type) {
+	case string:
+		return crc32.ChecksumIEEE([]byte(data.(string)))
 	case []byte:
 		return crc32.ChecksumIEEE(data.([]byte))
 	case int, uint16, uint32, uint64:
