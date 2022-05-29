@@ -270,3 +270,7 @@ func (s *LearnerSender) CutAckLead() {
 		s.ackLead = s.ackLead - receiverAckLead
 	}
 }
+
+func (s *LearnerSender) Start() {
+	go s.Run()
+}

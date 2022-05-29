@@ -46,3 +46,32 @@ const (
 	TimerLearnerAskForLearnNoop           = 3
 	TimerInstanceCommitTimeout            = 4
 )
+
+type PaxosTryCommitRet int
+
+const (
+	PaxosTryCommitRetOk                         PaxosTryCommitRet = 0
+	PaxosTryCommitRetReject                                       = -2
+	PaxosTryCommitRetConflict                                     = 14
+	PaxosTryCommitRetExecuteFail                                  = 15
+	PaxosTryCommitRetFollowerCannotCommit                         = 16
+	PaxosTryCommitRetNotInMembership                              = 17
+	PaxosTryCommitRetValueSizeTooLarge                            = 18
+	PaxosTryCommitRetTimeout                                      = 404
+	PaxosTryCommitRetTooManyThreadWaitingReject                   = 405
+)
+
+type PaxosNodeFunctionRet int
+
+const (
+	PaxosSystemError                       PaxosNodeFunctionRet = -1
+	PaxosGroupIdxWrong                                          = -5
+	PaxosMembershipOpGidNotSame                                 = -501
+	PaxosMembershipOpVersionConflit                             = -502
+	PaxosMembershipOpAddNodeExist                               = 1002
+	PaxosMembershipOpNoGid                                      = 1001
+	PaxosMembershipOpRemoveNodeNotExist                         = 1003
+	PaxosMembershipOpChangeNoChange                             = 1004
+	PaxosGetInstanceValueValueNotExist                          = 1005
+	PaxosGetInstanceValueValueNotChosenYet                      = 1006
+)

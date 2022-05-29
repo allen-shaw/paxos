@@ -117,7 +117,20 @@ func NewLearner(config *Config,
 	l.state = NewLearnerState(config, logStorage)
 	l.paxosLog = NewPaxosLog(logStorage)
 	l.learnerSender = NewLearnerSender(config, l, l.paxosLog)
-	l.checkpointReceiver = NewCheckpointRe
+	l.checkpointReceiver = NewCheckpointReceiver(config, logStorage)
+	l.acceptor = acceptor
+
+	l.InitForNewPaxosInstance()
+
+	l.askForLearnNoopTimerID = 0
+	l.loop = loop
+	l.checkpointMgr = checkpointMgr
+	l.smFac = smFac
+	l.checkpointSender = nil
+	l.highestSeenInstanceID = 0
+	l.highestSeenInstanceIDFromNodeID = nilNode
+	l.isLearning = false
+	l.lastAckInstanceID = 0
 
 	return l
 }
@@ -127,44 +140,153 @@ func (l *Learner) Close() {
 }
 
 func (l *Learner) StartLearnerSender() {
-
+	l.learnerSender.Start()
 }
 
 func (l *Learner) InitForNewPaxosInstance() {
-
+	l.state.Init()
 }
 
 func (l *Learner) IsLearned() bool {
-
+	return l.state.GetIsLearned()
 }
 
 func (l *Learner) GetLearnValue() string {
-
+	return l.state.GetLearnValue()
 }
 
 func (l *Learner) GetNewChecksum() uint32 {
-
+	return l.state.GetNewChecksum()
 }
 
 func (l *Learner) Stop() {
-
+	l.learnerSender.Stop()
+	if l.checkpointSender != nil {
+		l.checkpointSender.Stop()
+	}
 }
 
 //  prepare learn
 
 func (l *Learner) AskForLearn() {
+	log.Info("START")
 
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.InstanceID = l.GetInstanceID()
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.MsgType = MsgTypePaxosLearnerAskForLearn
+
+	if l.config.isFollower {
+		//this is not proposal nodeid, just use this val to bring follow to nodeid info.
+		paxosMsg.ProposalNodeID = uint64(l.config.GetFollowToNodeID())
+	}
+
+	log.Info("END", log.Uint64("instance_id", paxosMsg.InstanceID),
+		log.Uint64("my_node_id", paxosMsg.NodeID))
+
+	err := l.broadcastMessage(paxosMsg, BroadcastMessageTypeRunSelfNone)
+	if err != nil {
+		log.Error("broadcast message fail",
+			log.Uint64("instance_id", paxosMsg.InstanceID),
+			log.Err(err))
+	}
+	err = l.broadcastMessageToTempNode(paxosMsg)
+	if err != nil {
+		log.Error("broadcast message to temp node fail",
+			log.Uint64("instance_id", paxosMsg.InstanceID),
+			log.Err(err))
+	}
 }
 
 func (l *Learner) OnAskForLearn(msg *PaxosMsg) {
+	log.Info("START", log.Uint64("msg.instance_id", msg.InstanceID),
+		log.Uint64("now.instance_id", l.GetInstanceID()),
+		log.Uint64("msg.from_nodeid", msg.NodeID),
+		log.Uint64("min_chosen_instance_id", l.checkpointMgr.GetMinChosenInstanceID()))
 
+	l.SetSeenInstanceID(msg.InstanceID, NodeID(msg.NodeID))
+
+	if NodeID(msg.ProposalNodeID) == l.config.GetMyNodeID() {
+		//Found a node follow me.
+		log.Info("found a node follow me", log.Uint64("node_id", msg.NodeID))
+		l.config.AddFollowerNode(NodeID(msg.NodeID))
+	}
+
+	if msg.InstanceID >= l.GetInstanceID() {
+		return
+	}
+
+	if msg.InstanceID >= l.checkpointMgr.GetMinChosenInstanceID() {
+		if !l.learnerSender.Prepare(msg.InstanceID, NodeID(msg.NodeID)) {
+			log.Error("learner sender working for others")
+
+			if msg.InstanceID == l.GetInstanceID()-1 {
+				log.Info("instance_id only difference one, just send this value to other.")
+				// send one value
+				state, err := l.paxosLog.ReadState(l.config.GetMyGroupIdx(), msg.InstanceID)
+				if err == nil {
+					ballot := NewBallotNumber(state.AcceptedID, NodeID(state.AcceptedNodeID))
+					err := l.SendLearnValue(NodeID(msg.NodeID), msg.InstanceID, ballot, string(state.AcceptedValue), 0, false)
+					if err != nil {
+						log.Error("send learn value fail", log.Err(err))
+					}
+				}
+			}
+		}
+	}
+
+	l.SendNowInstanceID(msg.InstanceID, NodeID(msg.NodeID))
 }
 
-func (l *Learner) SendNowInstanceID(instanceID uint64, sendNode NodeID) {
+func (l *Learner) SendNowInstanceID(instanceID uint64, sendNodeID NodeID) {
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.InstanceID = instanceID
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.MsgType = MsgTypePaxosLearnerSendNowInstanceID
+	paxosMsg.NowInstanceID = l.GetInstanceID()
+	paxosMsg.MinChosenInstanceID = l.checkpointMgr.GetMinChosenInstanceID()
 
+	if l.GetInstanceID()-instanceID > 50 {
+		//instanceid too close not need to send vsm/master checkpoint.
+		systemVariablesBuff, err := l.config.GetSystemVSM().GetCheckpointBuffer()
+		if err == nil {
+			paxosMsg.SystemVariables = []byte(systemVariablesBuff)
+		}
+
+		if l.config.GetMasterSM() != nil {
+			masterVariablesBuff, err := l.config.GetMasterSM().GetCheckpointBuffer()
+			if err == nil {
+				paxosMsg.MasterVariables = []byte(masterVariablesBuff)
+			}
+		}
+	}
+
+	err := l.sendMessage(sendNodeID, paxosMsg)
+	if err != nil {
+		log.Error("send message fail", log.Err(err))
+	}
 }
 
 func (l *Learner) OnSendNowInstanceID(msg *PaxosMsg) {
+	log.Info("START",
+		log.Uint64("msg.instance_id", msg.InstanceID),
+		log.Uint64("now.instance_id", l.GetInstanceID()),
+		log.Uint64("msg.from_node_id", msg.NodeID),
+		log.Uint64("msg.max_instance_id", msg.NowInstanceID),
+		log.Int("system_variables_size", len(msg.SystemVariables)),
+		log.Int("master_variables_size", len(msg.MasterVariables)))
+
+	l.SetSeenInstanceID(msg.NowInstanceID, NodeID(msg.NodeID))
+
+	systemVariablesChanged, err := l.config.GetSystemVSM().UpdateByCheckpoint(msg.SystemVariables)
+	if err == nil && systemVariablesChanged {
+		log.Info("system variables changed!, need to reflesh, skip this msg")
+		return
+	}
+
+	if l.config.GetMasterSM() != nil {
+		l.config.GetMasterSM().UpdateByCheckpoint()
+	}
 
 }
 

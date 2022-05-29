@@ -67,7 +67,7 @@ type FollowerNodeInfo struct {
 	FollowNode NodeInfo
 }
 
-type NodeInfoList []NodeInfo
+type NodeInfoList []*NodeInfo
 type FollowerNodeInfoList []FollowerNodeInfo
 
 type GroupSMInfo struct {

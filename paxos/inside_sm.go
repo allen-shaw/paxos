@@ -1,4 +1,7 @@
 package paxos
 
-type InsideSM struct {
+type InsideSM interface {
+	StateMachine
+	GetCheckpointBuffer() (string, error)
+	UpdateByCheckpoint(buffer string) (bool, error)
 }

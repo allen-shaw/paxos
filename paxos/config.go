@@ -18,7 +18,7 @@ type Config struct {
 	followToNodeID NodeID
 
 	systemVSM *SystemVSM
-	masterSM  *InsideSM
+	masterSM  InsideSM
 
 	tmpNodeOnlyForLearn map[NodeID]uint64
 	myFollower          map[NodeID]uint64
@@ -121,11 +121,11 @@ func (c *Config) GetSystemVSM() *SystemVSM {
 	return c.systemVSM
 }
 
-func (c *Config) SetMasterSM(masterSM *InsideSM) {
+func (c *Config) SetMasterSM(masterSM InsideSM) {
 
 }
 
-func (c *Config) GetMasterSM() *InsideSM {
+func (c *Config) GetMasterSM() InsideSM {
 
 }
 
