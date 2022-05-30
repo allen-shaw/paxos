@@ -94,7 +94,7 @@ func NewGroupSMInfo() *GroupSMInfo {
 type GroupSMInfoList []GroupSMInfo
 
 type MembershipChangeCallback func(int, NodeInfoList)
-type MasterChangeCallback func(int, NodeInfo, uint64)
+type MasterChangeCallback func(int, *NodeInfo, uint64)
 
 type Options struct {
 	//optional

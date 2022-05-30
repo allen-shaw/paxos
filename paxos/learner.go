@@ -284,28 +284,97 @@ func (l *Learner) OnSendNowInstanceID(msg *PaxosMsg) {
 		return
 	}
 
+	masterVariablesChanged := false
 	if l.config.GetMasterSM() != nil {
-		l.config.GetMasterSM().UpdateByCheckpoint()
+		masterVariablesChanged, err = l.config.GetMasterSM().UpdateByCheckpoint(string(msg.MasterVariables))
+		if err == nil && masterVariablesChanged {
+			log.Info("master variables changed!")
+		}
 	}
 
+	if msg.InstanceID != l.GetInstanceID() {
+		log.Error("lag msg, skip")
+		return
+	}
+
+	if msg.NowInstanceID <= l.GetInstanceID() {
+		log.Error("lag msg, skip")
+		return
+	}
+
+	if msg.MinChosenInstanceID > l.GetInstanceID() {
+		log.Info("my instanceid small than other's min chosen instanceid",
+			log.Uint64("my_instance_id", l.GetInstanceID()),
+			log.Uint64("other's_min_chosen_instance_id", msg.MinChosenInstanceID),
+			log.Uint64("other_nodeid", msg.NodeID))
+		l.AskForCheckpoint(NodeID(msg.NodeID))
+	} else if !l.isLearning {
+		l.ConfirmAskForLearn(NodeID(msg.NodeID))
+	}
 }
 
-func (l *Learner) AskForCheckpoint(SendNodeID NodeID) {
+func (l *Learner) AskForCheckpoint(sendNodeID NodeID) {
+	log.Info("START")
 
+	err := l.checkpointMgr.PrepareForAskForCheckpoint(sendNodeID)
+	if err != nil {
+		return
+	}
+
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.InstanceID = l.GetInstanceID()
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.MsgType = MsgTypePaxosLearnerAskForCheckpoint
+
+	log.Info("END", log.Uint64("instance_id", l.GetInstanceID()),
+		log.Uint64("my_nodeid", uint64(l.config.GetMyNodeID())))
+
+	err = l.sendMessage(sendNodeID, paxosMsg)
+	if err != nil {
+		log.Error("send message fail", log.Err(err))
+	}
 }
 
 func (l *Learner) OnAskForCheckpoint(msg *PaxosMsg) {
-
+	checkpointSender := l.GetNewCheckpointSender(NodeID(msg.NodeID))
+	if checkpointSender != nil {
+		checkpointSender.Start()
+		log.Info("new checkpoint sender started", log.Uint64("send_to_nodeid", msg.NodeID))
+	} else {
+		log.Error("checkpoint sender is running")
+	}
 }
 
 // confirm learn
 
 func (l *Learner) ConfirmAskForLearn(sendNodeID NodeID) {
+	log.Info("START")
 
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.InstanceID = l.GetInstanceID()
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.MsgType = MsgTypePaxosLearnerComfirmAskForLearn
+
+	log.Info("END", log.Uint64("instance_id", l.GetInstanceID()),
+		log.Uint64("my_nodeid", paxosMsg.NodeID))
+
+	err := l.sendMessage(sendNodeID, paxosMsg)
+	if err != nil {
+		log.Error("send message fail", log.Err(err))
+	}
+	l.isLearning = true
 }
 
 func (l *Learner) OnConfirmAskForLearn(msg *PaxosMsg) {
+	log.Info("START", log.Uint64("msg.instanceid", msg.InstanceID),
+		log.Uint64("msg.from_nodeid", msg.NodeID))
 
+	if !l.learnerSender.Confirm(msg.InstanceID, NodeID(msg.NodeID)) {
+		log.Error("learner sender confirm fail, maybe is lag msg")
+		return
+	}
+
+	log.Info("ok, confirm success")
 }
 
 func (l *Learner) SendLearnValue(sendNodeID NodeID,
@@ -315,24 +384,101 @@ func (l *Learner) SendLearnValue(sendNodeID NodeID,
 	checksum uint32,
 	needAck bool) error {
 
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.MsgType = MsgTypePaxosLearnerSendLearnValue
+	paxosMsg.InstanceID = learnInstanceID
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.ProposalNodeID = uint64(learnedBallot.NodeID)
+	paxosMsg.ProposalID = learnedBallot.ProposalID
+	paxosMsg.Value = []byte(learnedValue)
+	paxosMsg.LastChecksum = checksum
+
+	if needAck {
+		paxosMsg.Flag = PaxosMsgFlagTypeSendLearnValueNeedAck
+	}
+	return l.sendMessage(sendNodeID, paxosMsg)
 }
 
 func (l *Learner) OnSendLearnValue(msg *PaxosMsg) {
+	log.Info("START", log.Uint64("msg.instanceid", msg.InstanceID),
+		log.Uint64("now.instanceid", l.GetInstanceID()),
+		log.Uint64("msg.ballot_proposal_id", msg.ProposalID),
+		log.Uint64("msg.ballot_nodeid", msg.NodeID),
+		log.Int("msg.value_size", len(msg.Value)))
 
+	if msg.InstanceID > l.GetInstanceID() {
+		log.Warn("[Latest Msg] can learn")
+		return
+	}
+
+	if msg.InstanceID < l.GetInstanceID() {
+		log.Warn("[Lag Msg] no need to learn")
+	} else {
+		ballot := NewBallotNumber(msg.ProposalID, NodeID(msg.ProposalNodeID))
+		err := l.state.LearnValue(msg.InstanceID, ballot, string(msg.Value), l.GetLastChecksum())
+		if err != nil {
+			log.Error("learnstate.learnvalue fail", log.Err(err))
+			return
+		}
+		log.Info("END learnvalue ok", log.Uint64("proposalid", msg.ProposalID),
+			log.Uint64("proposalid_nodeid", msg.NodeID),
+			log.Int("valuelen", len(msg.Value)))
+	}
+
+	if msg.Flag == PaxosMsgFlagTypeSendLearnValueNeedAck {
+		//every time' when receive valid need ack learn value, reset noop timeout.
+		l.ResetAskForLearnNoop(AskForLearnNoopInterval())
+		l.SendLearnValueAck(NodeID(msg.NodeID))
+	}
 }
 
 func (l *Learner) SendLearnValueAck(sendNodeID NodeID) {
+	log.Info("START", log.Uint64("lastAck.instanceid", l.lastAckInstanceID),
+		log.Uint64("now.instanceid", l.GetInstanceID()))
 
+	if l.GetInstanceID() < l.lastAckInstanceID+uint64(LearnerReceiverAckLead()) {
+		log.Info("no need to ack")
+		return
+	}
+
+	l.lastAckInstanceID = l.GetInstanceID()
+
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.InstanceID = l.GetInstanceID()
+	paxosMsg.MsgType = MsgTypePaxosLearnerSendLearnValueAck
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+
+	err := l.sendMessage(sendNodeID, paxosMsg)
+	if err != nil {
+		log.Error("send message fail", log.Err(err))
+	}
+
+	log.Info("END. ok")
 }
 
 func (l *Learner) OnSendLearnValueAck(msg *PaxosMsg) {
+	log.Info("on send learn value ack",
+		log.Uint64("msg.ack.instanceid", msg.InstanceID),
+		log.Uint64("msg.from_nodeid", msg.NodeID))
 
+	l.learnerSender.Ack(msg.InstanceID, NodeID(msg.NodeID))
 }
 
 // success learn
 
 func (l *Learner) ProposerSendSuccess(learnInstanceID, proposalID uint64) {
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.MsgType = MsgTypePaxosLearnerProposerSendSuccess
+	paxosMsg.InstanceID = learnInstanceID
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.ProposalID = proposalID
+	paxosMsg.LastChecksum = l.GetLastChecksum()
 
+	//run self first
+	err := l.broadcastMessage(paxosMsg, BroadcastMessageTypeRunSelfFirst)
+	if err != nil {
+		log.Error("broadcast message fail", log.Err(err))
+	}
 }
 
 func (l *Learner) OnProposerSendSuccess(msg *PaxosMsg) {

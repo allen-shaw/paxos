@@ -75,3 +75,31 @@ const (
 	PaxosGetInstanceValueValueNotExist                          = 1005
 	PaxosGetInstanceValueValueNotChosenYet                      = 1006
 )
+
+type PaxosMsgFlagType int
+
+const (
+	PaxosMsgFlagTypeSendLearnValueNeedAck = 1
+)
+
+type CheckpointMsgType int
+
+const (
+	CheckpointMsgTypeSendFile    = 1
+	CheckpointMsgTypeSendFileAck = 2
+)
+
+type CheckpointSendFileFlag int
+
+const (
+	CheckpointSendFileFlagBEGIN = 1
+	CheckpointSendFileFlagING   = 2
+	CheckpointSendFileFlagEND   = 3
+)
+
+type CheckpointSendFileAckFlag int
+
+const (
+	CheckpointSendFileAckFlagOK   = 1
+	CheckpointSendFileAckFlagFail = 2
+)

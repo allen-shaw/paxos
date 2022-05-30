@@ -326,3 +326,7 @@ func (s *CheckpointSender) checkAck(sendSequence uint64) bool {
 
 	return true
 }
+
+func (s *CheckpointSender) Start() {
+	go s.Run()
+}

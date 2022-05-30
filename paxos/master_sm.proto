@@ -10,5 +10,5 @@ message MasterOperator
   int32 timeout = 3;
   uint32 operator = 4;
   uint32 sid = 5;
-  optional uint64 lastversion = 6;
+  uint64 lastversion = 6;
 };
