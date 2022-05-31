@@ -1,13 +1,14 @@
 package paxos
 
 import (
+	"errors"
 	"fmt"
 	"github.com/AllenShaw19/paxos/log"
-	"github.com/go-errors/errors"
 	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -36,6 +37,8 @@ type CheckpointSender struct {
 
 	tmpBuffer       []byte
 	alreadySentFile map[string]bool
+
+	wg sync.WaitGroup
 }
 
 func NewCheckpointSender(sendNodeID NodeID, config *Config,
@@ -67,6 +70,8 @@ func (s *CheckpointSender) Stop() {
 }
 
 func (s *CheckpointSender) Run() {
+	defer s.wg.Done()
+
 	s.isStarted = true
 	s.absLastAckTime = GetCurrentTimeMs()
 
@@ -328,5 +333,11 @@ func (s *CheckpointSender) checkAck(sendSequence uint64) bool {
 }
 
 func (s *CheckpointSender) Start() {
+	s.wg.Add(1)
 	go s.Run()
+}
+
+func (s *CheckpointSender) Join() {
+	log.Info("checkpoint sender join")
+	s.wg.Wait()
 }

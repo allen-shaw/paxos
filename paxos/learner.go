@@ -1,6 +1,11 @@
 package paxos
 
-import "github.com/AllenShaw19/paxos/log"
+import (
+	"errors"
+	"github.com/AllenShaw19/paxos/log"
+	"os"
+	"path/filepath"
+)
 
 type LearnerState struct {
 	learnedValue string
@@ -482,79 +487,282 @@ func (l *Learner) ProposerSendSuccess(learnInstanceID, proposalID uint64) {
 }
 
 func (l *Learner) OnProposerSendSuccess(msg *PaxosMsg) {
+	log.Info("START", log.Uint64("msg.instanceid", msg.InstanceID), log.Uint64("now.instanceid", l.GetInstanceID()),
+		log.Uint64("msg.proposalid", msg.ProposalID), log.Uint64("state.acceptedid", l.acceptor.GetAcceptorState().GetAcceptedBallot().ProposalID),
+		log.Uint64("state.accepted_nodeid", l.acceptor.GetAcceptorState().GetAcceptedBallot().ProposalID),
+		log.Uint64("msg.from_nodeid", msg.NodeID))
 
+	if msg.InstanceID != l.GetInstanceID() {
+		//Instance id not same, that means not in the same instance, ignord.
+		log.Warn("instanceid not same, skip msg")
+		return
+	}
+
+	if l.acceptor.GetAcceptorState().GetAcceptedBallot().IsNull() {
+		//Not accept any yet.
+		log.Warn("not accepted any proposal")
+		return
+	}
+
+	ballot := NewBallotNumber(msg.ProposalID, NodeID(msg.NodeID))
+
+	if !l.acceptor.GetAcceptorState().GetAcceptedBallot().Equal(ballot) {
+		// proposalid not same, this accept value maybe not chosen value.
+		log.Warn("proposal ballot not same as accepted ballot")
+		return
+	}
+
+	l.state.LearnValueWithoutWrite(l.acceptor.GetAcceptorState().GetAcceptedValue(), l.acceptor.GetAcceptorState().Checksum())
+
+	log.Info("END Learn value ok", log.Int("valuelen", len(l.acceptor.GetAcceptorState().GetAcceptedValue())))
+
+	l.TransmitToFollower()
 }
 
 func (l *Learner) TransmitToFollower() {
+	if l.config.GetMyFollowerCount() == 0 {
+		return
+	}
 
+	acceptorState := l.acceptor.GetAcceptorState()
+
+	paxosMsg := &PaxosMsg{}
+	paxosMsg.MsgType = MsgTypePaxosLearnerSendLearnValue
+	paxosMsg.InstanceID = l.GetInstanceID()
+	paxosMsg.NodeID = uint64(l.config.GetMyNodeID())
+	paxosMsg.ProposalNodeID = uint64(acceptorState.GetAcceptedBallot().NodeID)
+	paxosMsg.ProposalID = acceptorState.GetAcceptedBallot().ProposalID
+	paxosMsg.Value = []byte(acceptorState.GetAcceptedValue())
+	paxosMsg.LastChecksum = l.GetLastChecksum()
+
+	err := l.broadcastMessageToFollower(paxosMsg)
+	if err != nil {
+		log.Error("broadcast message to follower fail", log.Err(err))
+	}
+
+	log.Info("transmit to follower done")
 }
 
 // learn loop
 
 func (l *Learner) AskForLearnNoop(isStart bool) {
+	l.ResetAskForLearnNoop(AskForLearnNoopInterval())
 
+	l.isLearning = false
+	l.checkpointMgr.ExitCheckpointMode()
+
+	l.AskForLearn()
+	if isStart {
+		l.AskForLearn()
+	}
 }
 
 func (l *Learner) ResetAskForLearnNoop(timeout int) {
-
+	if l.askForLearnNoopTimerID > 0 {
+		l.loop.RemoveTimer(l.askForLearnNoopTimerID)
+	}
+	l.askForLearnNoopTimerID = l.loop.AddTimer(timeout, TimerLearnerAskForLearnNoop)
 }
 
 // checkpoint
 
-func (l *Learner) SendCheckpointBegin(sendNodeID NodeID,
-	UUID, sequence, checkpointInstanceID uint64) error {
+func (l *Learner) SendCheckpointBegin(sendNodeID NodeID, uuid, sequence, checkpointInstanceID uint64) error {
 
+	checkpointMsg := &CheckpointMsg{}
+	checkpointMsg.MsgType = CheckpointMsgTypeSendFile
+	checkpointMsg.NodeID = uint64(l.config.GetMyNodeID())
+	checkpointMsg.Flag = CheckpointSendFileFlagBEGIN
+	checkpointMsg.UUID = uuid
+	checkpointMsg.Sequence = sequence
+	checkpointMsg.CheckpointInstanceID = checkpointInstanceID
+
+	log.Info("END", log.Uint64("send_nodeid", uint64(sendNodeID)), log.Uint64("uuid", uuid),
+		log.Uint64("sequence", sequence), log.Uint64("checkpoint.instanceid", checkpointInstanceID))
+
+	return l.sendCheckpointMsg(sendNodeID, checkpointMsg)
 }
 
 func (l *Learner) SendCheckpoint(sendNodeID NodeID,
-	UUID, sequence, checkpointInstanceID uint64,
+	uuid, sequence, checkpointInstanceID uint64,
 	checksum uint32, filePath string, smID int,
 	offset uint64, buffer string) error {
 
+	checkpointMsg := &CheckpointMsg{}
+	checkpointMsg.MsgType = CheckpointMsgTypeSendFile
+	checkpointMsg.NodeID = uint64(l.config.GetMyNodeID())
+	checkpointMsg.Flag = CheckpointSendFileFlagING
+	checkpointMsg.UUID = uuid
+	checkpointMsg.Sequence = sequence
+	checkpointMsg.CheckpointInstanceID = checkpointInstanceID
+	checkpointMsg.Checksum = checksum
+	checkpointMsg.FilePath = filePath
+	checkpointMsg.SMID = int32(smID)
+	checkpointMsg.Offset = offset
+	checkpointMsg.Buffer = []byte(buffer)
+
+	log.Info("END", log.Uint64("send_nodeid", uint64(sendNodeID)), log.Uint64("uuid", uuid),
+		log.Uint64("sequence", sequence), log.Uint64("checkpoint.instanceid", checkpointInstanceID),
+		log.Int("smid", smID), log.Uint64("offset", offset), log.Int("buffsize", len(buffer)),
+		log.String("filepath", filePath))
+
+	return l.sendCheckpointMsg(sendNodeID, checkpointMsg)
 }
 
-func (l *Learner) SendCheckpointEnd(sendNodeID NodeID,
-	UUID, sequence, checkpointInstanceID uint64) error {
+func (l *Learner) SendCheckpointEnd(sendNodeID NodeID, uuid, sequence, checkpointInstanceID uint64) error {
+	checkpointMsg := &CheckpointMsg{}
+	checkpointMsg.MsgType = CheckpointMsgTypeSendFile
+	checkpointMsg.NodeID = uint64(l.config.GetMyNodeID())
+	checkpointMsg.Flag = CheckpointSendFileFlagEND
+	checkpointMsg.UUID = uuid
+	checkpointMsg.Sequence = sequence
+	checkpointMsg.CheckpointInstanceID = checkpointInstanceID
 
+	log.Info("EMD", log.Uint64("send_nodeid", uint64(sendNodeID)), log.Uint64("uuid", uuid),
+		log.Uint64("sequence", sequence), log.Uint64("checkpoint.instanceid", checkpointInstanceID))
+
+	return l.sendCheckpointMsg(sendNodeID, checkpointMsg)
 }
 
 func (l *Learner) OnSendCheckpoint(msg *CheckpointMsg) {
+	log.Info("START", log.Any("msg", msg))
 
+	var err error
+	if msg.Flag == CheckpointSendFileFlagBEGIN {
+		err = l.OnSendCheckpointBegin(msg)
+	} else if msg.Flag == CheckpointSendFileFlagING {
+		err = l.OnSendCheckpointIng(msg)
+	} else if msg.Flag == CheckpointSendFileFlagEND {
+		err = l.OnSendCheckpointEnd(msg)
+	}
+
+	if err != nil {
+		log.Error("[FAIL] reset checkpoint receiver and reset askforlearn")
+		l.checkpointReceiver.Reset()
+		l.ResetAskForLearnNoop(5000)
+		err := l.SendCheckpointAck(NodeID(msg.NodeID), msg.UUID, msg.Sequence, CheckpointSendFileAckFlagFail)
+		if err != nil {
+			log.Error("send checkpoint ack fail", log.Err(err))
+		}
+		return
+	}
+
+	err = l.SendCheckpointAck(NodeID(msg.NodeID), msg.UUID, msg.Sequence, CheckpointSendFileAckFlagOK)
+	if err != nil {
+		log.Error("send checkpoint ack fail", log.Err(err))
+	}
+	l.ResetAskForLearnNoop(120000)
 }
 
-func (l *Learner) SendCheckpointAck(sendNodeID NodeID,
-	UUID, sequence uint64, flag int) error {
+func (l *Learner) SendCheckpointAck(sendNodeID NodeID, uuid, sequence uint64, flag int) error {
+	checkpointMsg := &CheckpointMsg{}
+	checkpointMsg.MsgType = CheckpointMsgTypeSendFileAck
+	checkpointMsg.NodeID = uint64(l.config.GetMyNodeID())
+	checkpointMsg.Flag = int32(flag)
+	checkpointMsg.UUID = uuid
+	checkpointMsg.Sequence = sequence
 
+	return l.sendCheckpointMsg(sendNodeID, checkpointMsg)
 }
 
 func (l *Learner) OnSendCheckpointAck(msg *CheckpointMsg) {
+	log.Info("START", log.Int32("flag", msg.Flag))
 
+	if l.checkpointSender != nil && !l.checkpointSender.IsEnd() {
+		if msg.Flag == CheckpointSendFileAckFlagOK {
+			l.checkpointSender.Ack(NodeID(msg.NodeID), msg.UUID, msg.Sequence)
+		} else {
+			l.checkpointSender.End()
+		}
+	}
 }
 
 func (l *Learner) GetNewCheckpointSender(sendNodeID NodeID) *CheckpointSender {
+	if l.checkpointSender != nil {
+		if l.checkpointSender.IsEnd() {
+			l.checkpointSender.Join()
+			l.checkpointSender = nil
+		}
+	}
 
+	if l.checkpointSender == nil {
+		l.checkpointSender = NewCheckpointSender(sendNodeID, l.config, l, l.smFac, l.checkpointMgr)
+		return l.checkpointSender
+	}
+
+	return nil
 }
 
 func (l *Learner) IsLatest() bool {
-
+	return (l.GetInstanceID() + 1) >= l.highestSeenInstanceID
 }
 
 func (l *Learner) GetSeenLatestInstanceID() uint64 {
-
+	return l.highestSeenInstanceID
 }
 
 func (l *Learner) SetSeenInstanceID(instanceID uint64, fromNodeID NodeID) {
-
+	if instanceID > l.highestSeenInstanceID {
+		l.highestSeenInstanceID = instanceID
+		l.highestSeenInstanceIDFromNodeID = fromNodeID
+	}
 }
 
 func (l *Learner) OnSendCheckpointBegin(msg *CheckpointMsg) error {
+	err := l.checkpointReceiver.NewReceiver(NodeID(msg.NodeID), msg.UUID)
+	if err == nil {
+		return err
+	}
 
+	log.Info("new receiver ok")
+	err = l.checkpointMgr.SetMinChosenInstanceID(msg.CheckpointInstanceID)
+	if err != nil {
+		log.Error("set min chosen instanceid fail", log.Err(err), log.Uint64("checkpoint.instanceid", msg.CheckpointInstanceID))
+		return err
+	}
+	return nil
 }
 
 func (l *Learner) OnSendCheckpointIng(msg *CheckpointMsg) error {
-
+	return l.checkpointReceiver.ReceiveCheckpoint(msg)
 }
 
 func (l *Learner) OnSendCheckpointEnd(msg *CheckpointMsg) error {
+	if !l.checkpointReceiver.IsReceiverFinish(NodeID(msg.NodeID), msg.UUID, msg.Sequence) {
+		log.Error("receive end msg but receiver not finish")
+		return errors.New("receive end msg but receiver not finish")
+	}
 
+	smList := l.smFac.GetSMList()
+	for _, sm := range smList {
+		if sm.SMID() == SystemVSMID || sm.SMID() == MasterVSMID {
+			//system variables sm no checkpoint
+			//master variables sm no checkpoint
+			continue
+		}
+
+		tmpDirPath := l.checkpointReceiver.GetTmpDirPath(sm.SMID())
+		filePaths := make([]string, 0)
+		err := filepath.Walk(tmpDirPath, func(path string, info os.FileInfo, err error) error {
+			filePaths = append(filePaths, path)
+			return nil
+		})
+
+		if err != nil {
+			log.Error("iter dir fail", log.Err(err), log.String("dirpath", tmpDirPath))
+		}
+		if len(filePaths) == 0 {
+			log.Info("sm have no checkpoint", log.Int("smid", sm.SMID()))
+			continue
+		}
+
+		err = sm.LoadCheckpointState(l.config.GetMyGroupIdx(), tmpDirPath, filePaths, msg.CheckpointInstanceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	log.Info("all sm load state ok, exit process")
+	os.Exit(-1)
+
+	return nil
 }
