@@ -78,7 +78,11 @@ func (c *Config) Init() error {
 }
 
 func (c *Config) Check() bool {
-
+	if !c.systemVSM.IsIMInMembership() {
+		log.Error("my node is not in membership", log.Uint64("my_node", uint64(c.myNodeID)))
+		return false
+	}
+	return true
 }
 
 func (c *Config) GetGid() uint64 {
@@ -86,66 +90,119 @@ func (c *Config) GetGid() uint64 {
 }
 
 func (c *Config) GetMyNodeID() NodeID {
-
+	return c.myNodeID
 }
 
-func (c *Config) GetNodeCount() int {}
+func (c *Config) GetNodeCount() int {
+	return c.systemVSM.GetNodeCount()
+}
 
-func (c *Config) GetMyGroupIdx() int {}
+func (c *Config) GetMyGroupIdx() int {
+	return c.myGroupIdx
+}
 
-func (c *Config) GetGroupCount() int {}
+func (c *Config) GetGroupCount() int {
+	return c.groupCount
+}
 
-func (c *Config) GetMajorityCount() int {}
+func (c *Config) GetMajorityCount() int {
+	return c.systemVSM.GetMajorityCount()
+}
 
-func (c *Config) GetIsUseMembership() int {}
+func (c *Config) GetIsUseMembership() bool {
+	return c.useMembership
+}
 
-func (c *Config) GetPrepareTimeoutMs() int {}
+func (c *Config) GetPrepareTimeoutMs() int {
+	return 3000
+}
 
-func (c *Config) GetAcceptTimeoutMs() int {}
+func (c *Config) GetAcceptTimeoutMs() int {
+	return 3000
+}
 
-func (c *Config) GetAskForLearnTimeoutMs() uint64 {}
+func (c *Config) GetAskForLearnTimeoutMs() uint64 {
+	return 2000
+}
 
-func (c *Config) IsValidNodeID(nodeID NodeID) bool {}
+func (c *Config) IsValidNodeID(nodeID NodeID) bool {
+	return c.systemVSM.IsValidNodeID(nodeID)
+}
 
-func (c *Config) IsIMFollower() bool {}
+func (c *Config) IsIMFollower() bool {
+	return c.isFollower
+}
 
-func (c *Config) GetFollowToNodeID() NodeID {}
+func (c *Config) GetFollowToNodeID() NodeID {
+	return c.followToNodeID
+}
 
-func (c *Config) LogSync() bool {}
+func (c *Config) LogSync() bool {
+	return c.logSync
+}
 
-func (c *Config) SyncInterval() int {}
+func (c *Config) SyncInterval() int {
+	return c.syncInterval
+}
 
-func (c *Config) SetLogSync(logSync bool) bool {}
+func (c *Config) SetLogSync(logSync bool) {
+	c.logSync = logSync
+}
 
 func (c *Config) GetSystemVSM() *SystemVSM {
 	return c.systemVSM
 }
 
 func (c *Config) SetMasterSM(masterSM InsideSM) {
-
+	c.masterSM = masterSM
 }
 
 func (c *Config) GetMasterSM() InsideSM {
-
+	return c.masterSM
 }
 
-func (c *Config) AddTmpNodeOnlyForLearn(tmpNodeID NodeID) {
+const TmpNodeTimeout = 60000
 
+func (c *Config) AddTmpNodeOnlyForLearn(tmpNodeID NodeID) {
+	nodeIDs := c.systemVSM.GetMembershipMap()
+	if _, ok := nodeIDs[tmpNodeID]; ok {
+		return
+	}
+	c.tmpNodeOnlyForLearn[tmpNodeID] = GetCurrentTimeMs() + TmpNodeTimeout
 }
 
 // GetTmpNodeMap this function only for communicate.
 func (c *Config) GetTmpNodeMap() map[NodeID]uint64 {
+	nowTime := GetCurrentTimeMs()
+	for nodeID, lastAddTime := range c.tmpNodeOnlyForLearn {
+		if lastAddTime < nowTime {
+			log.Error("tmp node timeout", log.Uint64("tmpnode", uint64(nodeID)),
+				log.Uint64("nowtime", nowTime), log.Uint64("tmpnode_last_add_time", lastAddTime))
 
+			delete(c.tmpNodeOnlyForLearn, nodeID)
+		}
+	}
+	return c.tmpNodeOnlyForLearn
 }
 
 func (c *Config) AddFollowerNode(followerNodeID NodeID) {
-
+	followerTimeout := uint64(AskForLearnNoopInterval() * 3)
+	c.myFollower[followerNodeID] = GetCurrentTimeMs() + followerTimeout
 }
 
 func (c *Config) GetMyFollowerMap() map[NodeID]uint64 {
+	nowTime := GetCurrentTimeMs()
+	for nodeID, lastAddTime := range c.myFollower {
+		if lastAddTime < nowTime {
+			log.Error("follower timeout", log.Uint64("follower", uint64(nodeID)),
+				log.Uint64("nowtime", nowTime), log.Uint64("follower_last_add_time", lastAddTime))
+			delete(c.myFollower, nodeID)
+		}
+	}
 
+	return c.myFollower
 }
 
 func (c *Config) GetMyFollowerCount() int {
-
+	return len(c.myFollower)
 }
