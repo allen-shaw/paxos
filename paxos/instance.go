@@ -1,5 +1,7 @@
 package paxos
 
+import "github.com/AllenShaw19/paxos/log"
+
 type Instance struct {
 	config       *Config
 	msgTransport MsgTransport
@@ -39,7 +41,7 @@ func NewInstance(config *Config,
 	i.checkpointMgr = NewCheckpointMgr(config, i.smFac, logStorage, options.UseCheckpointReplayer)
 	i.acceptor = NewAcceptor(config, msgTransport, i, logStorage)
 	i.learner = NewLearner(config, msgTransport, i, i.acceptor, logStorage, i.loop, i.checkpointMgr, i.smFac)
-	i.proposer = NewProposer(config, msgTransport, i, logStorage, i.loop)
+	i.proposer = NewProposer(config, msgTransport, i, i.learner, i.loop)
 	i.paxosLog = NewPaxosLog(logStorage)
 	i.lastChecksum = 0
 	i.commitCtx = NewCommitCtx(config)
@@ -53,31 +55,118 @@ func NewInstance(config *Config,
 }
 
 func (i *Instance) Init() error {
-	i.acceptor.Init()
+	//Must init acceptor first, because the max instanceid is record in acceptor state.
+	err := i.acceptor.Init()
+	if err != nil {
+		log.Error("acceptor.init fail", log.Err(err))
+		return err
+	}
+
+	err = i.checkpointMgr.Init()
+	if err != nil {
+		log.Error("checkpointMgr.init fail", log.Err(err))
+		return err
+	}
+
+	checkpointInstanceID := i.checkpointMgr.GetCheckpointInstanceID() + 1
+
+	log.Info("acceptor.ok", log.Uint64("log.instanceid", i.acceptor.GetInstanceID()),
+		log.Uint64("checkpoint.instanceid", checkpointInstanceID))
+
+	nowInstanceID := checkpointInstanceID
+	if nowInstanceID < i.acceptor.GetInstanceID() {
+		err = i.playLog(nowInstanceID, i.acceptor.GetInstanceID())
+		if err != nil {
+			return err
+		}
+		log.Info("playlog ok", log.Uint64("begin_instanceid", nowInstanceID),
+			log.Uint64("end_instanceid", i.acceptor.GetInstanceID()))
+		nowInstanceID = i.acceptor.GetInstanceID()
+	} else {
+		if nowInstanceID > i.acceptor.GetInstanceID() {
+			err := i.isCheckpointInstanceIDCorrect(nowInstanceID, i.acceptor.GetInstanceID())
+			if err != nil {
+				return err
+			}
+			i.acceptor.InitForNewPaxosInstance()
+		}
+		i.acceptor.SetInstanceID(nowInstanceID)
+	}
+
+	log.Info("init", log.Uint64("now.instanceid", nowInstanceID))
+
+	i.learner.SetInstanceID(nowInstanceID)
+	i.proposer.SetInstanceID(nowInstanceID)
+	i.proposer.SetStartProposalID(i.acceptor.GetAcceptorState().GetPromiseBallot().ProposalID + 1)
+
+	err = i.InitLastCheckSum()
+	if err != nil {
+		return err
+	}
+
+	i.learner.ResetAskForLearnNoop(AskForLearnNoopInterval())
+
+	log.Info("ok")
+	return nil
 }
 
 func (i *Instance) Start() {
+	//start learner sender
+	i.learner.StartLearnerSender()
+	//start loop
+	i.loop.Start()
+	//start checkpoint replayer and cleaner
+	i.checkpointMgr.Start()
 
+	i.started = true
 }
 
 func (i *Instance) Stop() {
-
+	if i.started {
+		i.loop.Stop()
+		i.checkpointMgr.Stop()
+		i.learner.Stop()
+	}
 }
 
-func (i *Instance) InitLastCheckSum() {
+func (i *Instance) InitLastCheckSum() error {
+	if i.acceptor.GetInstanceID() == 0 {
+		i.lastChecksum = 0
+		return nil
+	}
 
+	if i.acceptor.GetInstanceID() <= i.checkpointMgr.GetMinChosenInstanceID() {
+		i.lastChecksum = 0
+		return nil
+	}
+
+	state, err := i.paxosLog.ReadState(i.config.GetMyGroupIdx(), i.acceptor.GetInstanceID())
+	if err != nil && err != ErrNotExist {
+		return err
+	}
+
+	if err == ErrNotExist {
+		log.Error("las checksum not exist", log.Uint64("now.instanceid", i.acceptor.GetInstanceID()))
+		i.lastChecksum = 0
+		return nil
+	}
+
+	i.lastChecksum = state.Checksum
+
+	log.Info("ok", log.Uint32("last checksum", i.lastChecksum))
+	return nil
 }
 
 func (i *Instance) GetNowInstanceID() uint64 {
-
+	return i.acceptor.GetInstanceID()
 }
 
 func (i *Instance) GetMinChosenInstanceID() uint64 {
-
+	return i.checkpointMgr.GetMaxChosenInstanceID()
 }
 
 func (i *Instance) GetLastChecksum() uint32 {
-
+	return i.lastChecksum
 }
 
 func (i *Instance) GetInstanceValue(instanceID uint64) (value string, smID int) {

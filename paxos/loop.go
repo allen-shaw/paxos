@@ -21,10 +21,18 @@ func NewLoop(config *Config, instance *Instance) *Loop {
 	return l
 }
 
+func (l *Loop) Start() {
+
+}
+
 func (l *Loop) RemoveTimer(timerID uint32) {
 
 }
 
 func (l *Loop) AddTimer(timeoutMs int, timerType TimerType) uint32 {
+
+}
+
+func (l *Loop) Stop() {
 
 }
