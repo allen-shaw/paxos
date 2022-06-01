@@ -41,7 +41,11 @@ func (q *Queue[T]) Lock() {
 	q.lock.Lock()
 }
 
-func (q *Queue[T]) Add(value T, signal bool, back bool) int {
+func (q Queue[T]) Add(value T) int {
+	return q.add(value, true, true)
+}
+
+func (q *Queue[T]) add(value T, signal bool, back bool) int {
 	if back {
 		q.storage = append(q.storage, value)
 	} else {

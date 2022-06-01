@@ -1,6 +1,11 @@
 package paxos
 
-import "github.com/AllenShaw19/paxos/log"
+import (
+	"errors"
+	"github.com/AllenShaw19/paxos/log"
+)
+
+const RetryQueueMaxLen = 300
 
 type Loop struct {
 	isEnd   bool
@@ -66,24 +71,38 @@ func (l *Loop) DealWithRetry() {
 
 	haveRetryOne := false
 	for {
-		select {}
 	}
 }
 
 func (l *Loop) ClearRetryQueue() {
-
+	l.retryQueue = make([]*PaxosMsg, 0)
 }
 
 func (l *Loop) AddMessage(message string) error {
+	l.messageQueue.Lock()
+	defer l.messageQueue.Unlock()
+
+	if l.messageQueue.Size() > QueueMaxlength() {
+		log.Error("queue full, skip msg")
+		return errors.New("queue full")
+	}
+
+	l.messageQueue.Add(&message)
 	return nil
 }
 
 func (l *Loop) AddRetryPaxosMsg(paxosMsg *PaxosMsg) error {
-	l.retryQueue <- paxosMsg
+	if len(l.retryQueue) > RetryQueueMaxLen {
+		l.retryQueue = l.retryQueue[1:]
+	}
+	l.retryQueue = append(l.retryQueue, paxosMsg)
+	return nil
 }
 
 func (l *Loop) AddNotify() {
-	l.messageQueue <- ""
+	l.messageQueue.Lock()
+	defer l.messageQueue.Unlock()
+	l.messageQueue.Add(nil)
 }
 
 func (l *Loop) AddTimer(timeoutMs int, timerType TimerType) (uint32, bool) {
