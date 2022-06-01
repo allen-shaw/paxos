@@ -7,7 +7,7 @@ type SerialLock struct {
 	cond  *sync.Cond
 }
 
-func NewLock() *SerialLock {
+func NewSerialLock() *SerialLock {
 	l := &SerialLock{}
 	l.cond = sync.NewCond(&l.mutex)
 	return l
@@ -16,12 +16,18 @@ func NewLock() *SerialLock {
 func (l *SerialLock) Lock() {
 	l.mutex.Lock()
 }
-func (l *SerialLock) UnLock() {
+func (l *SerialLock) Unlock() {
 	l.mutex.Unlock()
 }
 
 func (l *SerialLock) Wait() {
 	l.cond.Wait()
+}
+
+func (l *SerialLock) WaitTime(timeMs int) bool {
+	// TODO:
+	l.cond.Wait()
+	return true
 }
 
 func (l *SerialLock) Interrupt() {

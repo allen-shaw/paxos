@@ -1,6 +1,9 @@
 package paxos
 
-import "github.com/AllenShaw19/paxos/log"
+import (
+	"encoding/binary"
+	"github.com/AllenShaw19/paxos/log"
+)
 
 type Instance struct {
 	config       *Config
@@ -169,20 +172,35 @@ func (i *Instance) GetLastChecksum() uint32 {
 	return i.lastChecksum
 }
 
-func (i *Instance) GetInstanceValue(instanceID uint64) (value string, smID int) {
+func (i *Instance) GetInstanceValue(instanceID uint64) (value string, smID int, err error) {
+	if instanceID >= i.acceptor.GetInstanceID() {
+		return "", 0, ErrGetInstanceValueNotChosenYet
+	}
 
+	state, err := i.paxosLog.ReadState(i.config.GetMyGroupIdx(), instanceID)
+	if err != nil && err != ErrNotExist {
+		return "", 0, err
+	}
+
+	if err == ErrNotExist {
+		return "", 0, ErrGetInstanceValueNotExist
+	}
+
+	smID = int(binary.BigEndian.Uint64(state.AcceptedValue[:sizeOfInt]))
+	value = string(state.AcceptedValue[sizeOfInt:])
+	return value, smID, nil
 }
 
 func (i *Instance) GetCommitter() *Committer {
-
+	return i.committer
 }
 
 func (i *Instance) GetCheckpointCleaner() *Cleaner {
-
+	return i.checkpointMgr.GetCleaner()
 }
 
 func (i *Instance) GetCheckpointReplayer() *Replayer {
-
+	return i.checkpointMgr.GetReplayer()
 }
 
 func (i *Instance) CheckNewValue() {
