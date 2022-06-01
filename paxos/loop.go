@@ -9,7 +9,7 @@ type Loop struct {
 	timer    Timer
 	timerIDs map[uint32]bool
 
-	messageQueue chan string
+	messageQueue *Queue[*string]
 	retryQueue   []*PaxosMsg
 
 	config   *Config
@@ -20,6 +20,10 @@ func NewLoop(config *Config, instance *Instance) *Loop {
 	l := &Loop{}
 	l.isEnd = false
 	l.isStart = false
+
+	l.messageQueue = NewQueue[*string]()
+	l.retryQueue = make([]*PaxosMsg, 0)
+
 	l.config = config
 	l.instance = instance
 	return l
@@ -71,7 +75,6 @@ func (l *Loop) ClearRetryQueue() {
 }
 
 func (l *Loop) AddMessage(message string) error {
-	l.messageQueue <- message
 	return nil
 }
 
