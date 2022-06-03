@@ -2,8 +2,8 @@ package paxos
 
 type Node interface {
 	// Base function.
-	Propose(groupIdx int, value string, instanceID uint64) int
-	ProposeWithCtx(groupIdx int, value string, instanceID uint64, ctx *SMCtx) int
+	Propose(groupIdx int, value string, instanceID uint64) error
+	ProposeWithCtx(groupIdx int, value string, instanceID uint64, ctx *SMCtx) error
 	GetNowInstanceID(groupIdx int) uint64
 	GetMinChosenInstanceID(groupIdx int) uint64
 	GetMyNodeID() NodeID
@@ -106,6 +106,5 @@ func RunNode(options *Options) (Node, error) {
 
 	//   Breakpoint::m_poBreakpoint = nullptr;
 	//    BP->SetInstance(oOptions.poBreakpoint);
-	realNode := newPaxosNode()
-
+	//realNode := newPaxosNode()
 }

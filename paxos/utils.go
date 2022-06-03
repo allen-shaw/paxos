@@ -5,6 +5,7 @@ import (
 	"hash/crc32"
 	"math/rand"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
@@ -70,4 +71,31 @@ func GetCurrentTimeMs() uint64 {
 
 func GenGid(nodeID NodeID) uint64 {
 	return uint64(nodeID) ^ uint64(rand.Uint32()) + uint64(rand.Uint32())
+}
+
+var goid uint64
+
+func NewGoID() uint64 {
+	return atomic.AddUint64(&goid, 1)
+}
+
+type TimeStat struct {
+	timeMs uint64
+}
+
+func NewTimeStat() *TimeStat {
+	return &TimeStat{
+		timeMs: GetCurrentTimeMs(),
+	}
+}
+
+func (t *TimeStat) Point() int {
+	nowTime := GetCurrentTimeMs()
+
+	passTime := 0
+	if nowTime > t.timeMs {
+		passTime = int(nowTime - t.timeMs)
+	}
+	t.timeMs = nowTime
+	return passTime
 }
