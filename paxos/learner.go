@@ -148,6 +148,11 @@ func (l *Learner) StartLearnerSender() {
 	l.learnerSender.Start()
 }
 
+func (l *Learner) NewInstance() {
+	l.instanceID++
+	l.InitForNewPaxosInstance()
+}
+
 func (l *Learner) InitForNewPaxosInstance() {
 	l.state.Init()
 }

@@ -3,6 +3,7 @@ package paxos
 import (
 	"encoding/binary"
 	"hash/crc32"
+	"math/rand"
 	"os"
 	"time"
 )
@@ -65,4 +66,8 @@ func IntToBytes(i interface{}) []byte {
 
 func GetCurrentTimeMs() uint64 {
 	return uint64(time.Now().UnixNano() / 1e6)
+}
+
+func GenGid(nodeID NodeID) uint64 {
+	return uint64(nodeID) ^ uint64(rand.Uint32()) + uint64(rand.Uint32())
 }

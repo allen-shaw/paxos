@@ -174,6 +174,11 @@ func (a *Acceptor) Init() error {
 	return nil
 }
 
+func (a *Acceptor) NewInstance() {
+	a.instanceID++
+	a.InitForNewPaxosInstance()
+}
+
 func (a *Acceptor) InitForNewPaxosInstance() {
 	a.state.Init()
 }

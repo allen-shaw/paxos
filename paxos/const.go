@@ -41,10 +41,10 @@ const (
 type TimerType int
 
 const (
-	TimerProposerPrepareTimeout TimerType = 1
-	TimerProposerAcceptTimeout            = 2
-	TimerLearnerAskForLearnNoop           = 3
-	TimerInstanceCommitTimeout            = 4
+	TimerProposerPrepareTimeout = 1
+	TimerProposerAcceptTimeout  = 2
+	TimerLearnerAskForLearnNoop = 3
+	TimerInstanceCommitTimeout  = 4
 )
 
 type PaxosTryCommitRet int

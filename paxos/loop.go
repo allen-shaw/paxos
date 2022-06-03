@@ -15,7 +15,7 @@ type Loop struct {
 	timerIDs map[uint32]bool
 
 	messageQueue *Queue[*string]
-	retryQueue   []*PaxosMsg
+	retryQueue   queue[*PaxosMsg]
 
 	config   *Config
 	instance *Instance
@@ -61,7 +61,23 @@ func (l *Loop) Stop() {
 }
 
 func (l *Loop) OneLoop(timeoutMs int) {
+	l.messageQueue.Lock()
+	message, ok := l.messageQueue.Peek(timeoutMs)
+	if !ok {
+		l.messageQueue.Unlock()
+	} else {
+		l.messageQueue.Pop()
+		l.messageQueue.Unlock()
 
+		if message != nil && len(*message) > 0 {
+			l.instance.OnReceive(*message)
+		}
+	}
+
+	l.DealWithRetry()
+	//must put on here
+	//because addtimer on this funciton
+	l.instance.CheckNewValue()
 }
 
 func (l *Loop) DealWithRetry() {
@@ -70,7 +86,29 @@ func (l *Loop) DealWithRetry() {
 	}
 
 	haveRetryOne := false
-	for {
+	for !l.retryQueue.Empty() {
+		paxosMsg := l.retryQueue.Front()
+		if paxosMsg.InstanceID > l.instance.GetNowInstanceID()+1 {
+			break
+		} else if paxosMsg.InstanceID == l.instance.GetNowInstanceID()+1 {
+			//only after retry i == now_i, than we can retry i + 1.
+			if haveRetryOne {
+				log.Info("retry msg (i+1).", log.Uint64("instanceid", paxosMsg.InstanceID))
+				err := l.instance.OnReceivePaxosMsg(paxosMsg, true)
+				if err != nil {
+					log.Error("instance on receive paxos msg fail", log.Err(err), log.Uint64("instanceid", paxosMsg.InstanceID))
+				}
+			} else {
+				break
+			}
+		} else if paxosMsg.InstanceID == l.instance.GetNowInstanceID() {
+			log.Info("retry msg", log.Uint64("instanceid", paxosMsg.InstanceID))
+			err := l.instance.OnReceivePaxosMsg(paxosMsg, false)
+			if err != nil {
+				log.Error("instance on receive paxos msg fail", log.Err(err), log.Uint64("instanceid", paxosMsg.InstanceID))
+			}
+		}
+		l.retryQueue.PopFront()
 	}
 }
 
@@ -105,12 +143,19 @@ func (l *Loop) AddNotify() {
 	l.messageQueue.Add(nil)
 }
 
-func (l *Loop) AddTimer(timeoutMs int, timerType TimerType) (uint32, bool) {
+func (l *Loop) AddTimer(timeoutMs int, timerType TimerType) (timerID uint32) {
+	if timeoutMs == -1 {
+		return 0
+	}
+	absTime := GetCurrentTimeMs() + uint64(timeoutMs)
+	timerID = l.timer.AddTimerWithType(absTime, int(timerType))
 
+	l.timerIDs[timerID] = true
+	return timerID
 }
 
-func (l *Loop) RemoveTimer(timerID uint32) bool {
-
+func (l *Loop) RemoveTimer(timerID uint32) {
+	delete(l.timerIDs, timerID)
 }
 
 func (l *Loop) DealWithTimeout(nextTimeout int) int {
@@ -129,6 +174,7 @@ func (l *Loop) DealWithTimeout(nextTimeout int) int {
 			}
 		}
 	}
+	return nextTimeout
 }
 
 func (l *Loop) DealWithTimeoutOne(timerID uint32, timerType int) {

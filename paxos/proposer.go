@@ -142,6 +142,11 @@ func (p *Proposer) SetStartProposalID(proposalID uint64) {
 	p.state.SetStartProposalID(proposalID)
 }
 
+func (p *Proposer) NewInstance() {
+	p.instanceID++
+	p.InitForNewPaxosInstance()
+}
+
 func (p *Proposer) InitForNewPaxosInstance() {
 	p.msgCounter.StartNewRound()
 	p.state.Init()

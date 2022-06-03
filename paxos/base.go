@@ -151,55 +151,8 @@ func (b *base) PackBaseMsg(bodyBuffer string, cmd int) string {
 	return string(buffer)
 }
 
-func (b *base) UnpackBaseMsg(buff string, header *Header) (bodyStartPos int, bodyLen int, err error) {
-	headerLenBuffer := buff[GroupIdxLen : GroupIdxLen+HeadlenLen]
-	headerLen := int(binary.BigEndian.Uint16([]byte(headerLenBuffer)))
-
-	headerStartPos := GroupIdxLen + HeadlenLen
-	bodyStartPos = headerStartPos + int(headerLen)
-
-	if bodyStartPos > len(buff) {
-		log.Error("header headerlen too long", log.Int("header_len", headerLen))
-		return 0, 0, errors.New("invalid header")
-	}
-
-	headerBuffer := buff[headerStartPos : headerStartPos+headerLen]
-	err = proto.Unmarshal([]byte(headerBuffer), header)
-	if err != nil {
-		log.Error("ummarshal header fail. skip", log.Err(err))
-		return 0, 0, err
-	}
-
-	log.Debug("unpack base msg", log.Int("buffer_size", len(buff)),
-		log.Int("header_len", headerLen),
-		log.Int32("cmdid", header.CmdId),
-		log.Uint64("gid", header.Gid),
-		log.Uint64("rid", header.Rid),
-		log.Int32("version", header.Version),
-		log.Int("body_startpos", bodyStartPos))
-
-	if header.Version >= 1 {
-		if bodyStartPos+ChecksumLen > len(buff) {
-			log.Error("no checksum", log.Int("body_start_pos", bodyStartPos), log.Int("buffer_size", len(buff)))
-			return 0, 0, errors.New("invalid buffer")
-		}
-
-		bodyLen = len(buff) - ChecksumLen - bodyStartPos
-
-		checksumBuffer := buff[len(buff)-ChecksumLen:]
-		bufferChecksum := binary.BigEndian.Uint32([]byte(checksumBuffer))
-
-		calcBufferChecksum := Crc32(buff[:len(buff)-ChecksumLen])
-		if calcBufferChecksum != bufferChecksum {
-			log.Error("checksum fail", log.Uint32("data_checksum", bufferChecksum),
-				log.Uint32("calc_checksum", calcBufferChecksum))
-			return 0, 0, ErrChecksum
-		}
-	} else {
-		bodyLen = len(buff) - bodyStartPos
-	}
-
-	return bodyStartPos, bodyLen, nil
+func (b *base) UnpackBaseMsg(buff string) (header *Header, bodyStartPos int, bodyLen int, err error) {
+	return UnpackBaseMsg(buff)
 }
 
 func (b *base) SetAsTestMode() {
@@ -276,4 +229,57 @@ func (b *base) sendCheckpointMsg(sendToNodeId NodeID, checkpointMsg *CheckpointM
 		return err
 	}
 	return b.msgTransport.SendMessage(b.config.GetMyGroupIdx(), sendToNodeId, msg)
+}
+
+///////////////////////////////////////////////////////
+
+func UnpackBaseMsg(buff string) (header *Header, bodyStartPos int, bodyLen int, err error) {
+	headerLenBuffer := buff[GroupIdxLen : GroupIdxLen+HeadlenLen]
+	headerLen := int(binary.BigEndian.Uint16([]byte(headerLenBuffer)))
+
+	headerStartPos := GroupIdxLen + HeadlenLen
+	bodyStartPos = headerStartPos + int(headerLen)
+
+	if bodyStartPos > len(buff) {
+		log.Error("header headerlen too long", log.Int("header_len", headerLen))
+		return nil, 0, 0, errors.New("invalid header")
+	}
+
+	headerBuffer := buff[headerStartPos : headerStartPos+headerLen]
+	err = proto.Unmarshal([]byte(headerBuffer), header)
+	if err != nil {
+		log.Error("ummarshal header fail. skip", log.Err(err))
+		return nil, 0, 0, err
+	}
+
+	log.Debug("unpack base msg", log.Int("buffer_size", len(buff)),
+		log.Int("header_len", headerLen),
+		log.Int32("cmdid", header.CmdId),
+		log.Uint64("gid", header.Gid),
+		log.Uint64("rid", header.Rid),
+		log.Int32("version", header.Version),
+		log.Int("body_startpos", bodyStartPos))
+
+	if header.Version >= 1 {
+		if bodyStartPos+ChecksumLen > len(buff) {
+			log.Error("no checksum", log.Int("body_start_pos", bodyStartPos), log.Int("buffer_size", len(buff)))
+			return nil, 0, 0, errors.New("invalid buffer")
+		}
+
+		bodyLen = len(buff) - ChecksumLen - bodyStartPos
+
+		checksumBuffer := buff[len(buff)-ChecksumLen:]
+		bufferChecksum := binary.BigEndian.Uint32([]byte(checksumBuffer))
+
+		calcBufferChecksum := Crc32(buff[:len(buff)-ChecksumLen])
+		if calcBufferChecksum != bufferChecksum {
+			log.Error("checksum fail", log.Uint32("data_checksum", bufferChecksum),
+				log.Uint32("calc_checksum", calcBufferChecksum))
+			return nil, 0, 0, ErrChecksum
+		}
+	} else {
+		bodyLen = len(buff) - bodyStartPos
+	}
+
+	return header, bodyStartPos, bodyLen, nil
 }
