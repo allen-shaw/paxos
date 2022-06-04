@@ -11,6 +11,7 @@ var (
 	ErrChecksum     = errors.New("checksum fail")
 	ErrNotMajority  = errors.New("no majority")
 )
+var ErrUnknown = errors.New("unknown")
 
 var (
 	ErrTryCommitReject                     = errors.New("paxos try commit reject")

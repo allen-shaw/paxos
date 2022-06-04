@@ -18,6 +18,26 @@ type SystemVSM struct {
 	membershipChangeCallback MembershipChangeCallback
 }
 
+func (sm *SystemVSM) LockCheckpointState() error {
+	return nil
+}
+
+func (sm *SystemVSM) GetCheckpointState(groupIdx int) (dirPath string, files []string, err error) {
+	return "", nil, nil
+}
+
+func (sm *SystemVSM) LoadCheckpointState(groupIdx int, checkpointTmpFileDirPath string, files []string, checkpointInstanceID uint64) error {
+	return nil
+}
+
+func (sm *SystemVSM) BeforePropose(groupIdx int, value string) {
+	return
+}
+
+func (sm *SystemVSM) NeedCallBeforePropose() bool {
+	return false
+}
+
 func NewSystemVSM(groupIdx int,
 	myNodeID NodeID,
 	logStorage LogStorage,
@@ -228,21 +248,6 @@ func (sm *SystemVSM) GetCheckpointInstanceID(groupIdx int) uint64 {
 
 func (sm *SystemVSM) ExecuteForCheckpoint(groupIdx int, instanceID uint64, paxosValue string) bool {
 	return true
-}
-
-func (sm *SystemVSM) GetCheckpointState(groupIdx int, dirPath string, fileList []string) int {
-	return 0
-}
-
-func (sm *SystemVSM) LoadCheckpointState(groupIdx int,
-	checkpointTmpFileDirPath string,
-	fileList []string,
-	checkpointInstanceID uint64) int {
-	return 0
-}
-
-func (sm *SystemVSM) LockCheckpointState() int {
-	return 0
 }
 
 func (sm *SystemVSM) UnLockCheckpointState() {}

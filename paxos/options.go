@@ -138,7 +138,7 @@ type Options struct {
 
 	//required
 	//Self node's ip/port.
-	MyNode NodeInfo
+	MyNode *NodeInfo
 
 	//required
 	//All nodes's ip/port with a paxos set(usually three or five nodes).
