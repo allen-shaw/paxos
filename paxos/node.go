@@ -2,8 +2,8 @@ package paxos
 
 type Node interface {
 	// Base function.
-	Propose(groupIdx int, value string, instanceID uint64) error
-	ProposeWithCtx(groupIdx int, value string, instanceID uint64, ctx *SMCtx) error
+	Propose(groupIdx int, value string) (instanceID uint64, err error)
+	ProposeWithSMCtx(groupIdx int, value string, ctx *SMCtx) (instanceID uint64, err error)
 	GetNowInstanceID(groupIdx int) uint64
 	GetMinChosenInstanceID(groupIdx int) uint64
 	GetMyNodeID() NodeID
@@ -13,8 +13,8 @@ type Node interface {
 	//Warning: BatchProposal will have same InstanceID returned but different BatchIndex.
 	//Batch values's execute order in StateMachine is certain, the return value BatchIndex
 	//means the execute order index, start from 0.
-	BatchPropose(groupIdx int, value string, instanceID uint64, batchIndex uint32) int
-	BatchProposeWithCtx(groupIdx int, value string, instanceID uint64, batchIndex uint32, ctx *SMCtx) int
+	BatchPropose(groupIdx int, value string) (instanceID uint64, batchIndex uint32, err error)
+	BatchProposeWithSMCtx(groupIdx int, value string, ctx *SMCtx) (instanceID uint64, batchIndex uint32, err error)
 
 	//Paxos will batch proposal while waiting proposals count reach to BatchCount,
 	//or wait time reach to BatchDelayTimeMs.
@@ -58,29 +58,29 @@ type Node interface {
 
 	//Show now membership.
 	//virtual int ShowMembership(const int iGroupIdx, NodeInfoList & vecNodeInfoList) = 0;
-	ShowMembership(groupIdx int, nodeInfos NodeInfoList) int
+	ShowMembership(groupIdx int) (nodeInfos NodeInfoList, err error)
 
 	//Add a paxos node to membership.
-	AddMember(groupIdx int, node *NodeInfo) int
+	AddMember(groupIdx int, node *NodeInfo) error
 
 	//Remove a paxos node from membership.
-	RemoveMember(groupIdx int, node *NodeInfo) int
+	RemoveMember(groupIdx int, node *NodeInfo) error
 
 	//Change membership by one node to another node.
-	ChangeMember(groupIdx int, fromNode, toNode *NodeID) int
+	ChangeMember(groupIdx int, fromNode, toNode *NodeInfo) error
 
 	//Master
 
 	//Check who is master.
-	GetMaster(groupIdx int) NodeInfo
+	GetMaster(groupIdx int) *NodeInfo
 
 	//Check who is master and get version.
-	GetMasterWithVersion(groupIdx int, version uint64) NodeInfo
+	GetMasterWithVersion(groupIdx int) (nodeInfo *NodeInfo, version uint64)
 
 	//Check is i'm master.
 	IsMaster(groupIdx int) bool
-	SetMasterLease(groupIdx int, leaseTimeMs int) int
-	DropMaster(groupIdx int) int
+	SetMasterLease(groupIdx int, leaseTimeMs int) error
+	DropMaster(groupIdx int) error
 
 	//Qos
 
@@ -95,7 +95,7 @@ type Node interface {
 	//write disk
 	SetLogSync(groupIdx int, logSync bool)
 
-	onReceiveMessage(message string) int
+	OnReceiveMessage(message string) error
 }
 
 func RunNode(options *Options) (Node, error) {
@@ -104,7 +104,23 @@ func RunNode(options *Options) (Node, error) {
 	}
 	InsideOptionsInstance().SetGroupCount(options.GroupCount)
 
-	//   Breakpoint::m_poBreakpoint = nullptr;
-	//    BP->SetInstance(oOptions.poBreakpoint);
-	//realNode := newPaxosNode()
+	realNode := NewPaxosNode()
+	network, err := realNode.Init(options)
+	if err != nil {
+		return nil, err
+	}
+
+	//step1 set node to network
+	//very important, let network on recieve callback can work.
+	network.SetNode(realNode)
+
+	//step2 run network.
+	//start recieve message from network, so all must init before this step.
+	//must be the last step.
+	err = network.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	return realNode, nil
 }

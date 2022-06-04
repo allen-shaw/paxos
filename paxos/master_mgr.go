@@ -124,10 +124,9 @@ func (m *MasterMgr) TryMaster(time int) {
 
 	masterLeaseTimeout := uint64(m.leaseTime - 100)
 	absMasterTimeout := GetCurrentTimeMs() - masterLeaseTimeout
-	commitInstanceID := uint64(0)
 
 	smCtx := NewSMCtx(MasterVSMID, &absMasterTimeout)
-	err := m.node.ProposeWithCtx(m.myGroupIdx, paxosValue, commitInstanceID, smCtx)
+	_, err := m.node.ProposeWithSMCtx(m.myGroupIdx, paxosValue, smCtx)
 	if err != nil {
 		log.Error("node propose fail", log.Err(err))
 	}

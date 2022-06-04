@@ -30,8 +30,8 @@ func (sm *SystemVSM) LoadCheckpointState(groupIdx int, checkpointTmpFileDirPath 
 	return nil
 }
 
-func (sm *SystemVSM) BeforePropose(groupIdx int, value string) {
-	return
+func (sm *SystemVSM) BeforePropose(groupIdx int, value string) (string, error) {
+	return "", nil
 }
 
 func (sm *SystemVSM) NeedCallBeforePropose() bool {

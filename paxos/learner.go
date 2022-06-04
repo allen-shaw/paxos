@@ -296,7 +296,7 @@ func (l *Learner) OnSendNowInstanceID(msg *PaxosMsg) {
 
 	masterVariablesChanged := false
 	if l.config.GetMasterSM() != nil {
-		masterVariablesChanged, err = l.config.GetMasterSM().UpdateByCheckpoint(string(msg.MasterVariables))
+		masterVariablesChanged, err = l.config.GetMasterSM().UpdateByCheckpoint(msg.MasterVariables)
 		if err == nil && masterVariablesChanged {
 			log.Info("master variables changed!")
 		}

@@ -117,20 +117,20 @@ func (b *ProposeBatch) Stop() {
 	}
 }
 
-func (b *ProposeBatch) Propose(value string) (instanceID uint64, batchIndex uint32, smCtx *SMCtx, err error) {
+func (b *ProposeBatch) Propose(value string, smCtx *SMCtx) (instanceID uint64, batchIndex uint32, err error) {
 	if b.isEnd {
-		return 0, 0, nil, ErrSystem
+		return 0, 0, ErrSystem
 	}
 
 	notifier, err := b.notifierPool.GetNotifier(b.batchID)
 	if err != nil {
 		log.Error("get nofifier fail", log.Err(err))
-		return 0, 0, nil, ErrSystem
+		return 0, 0, ErrSystem
 	}
 
 	b.addProposal(value, &instanceID, &batchIndex, smCtx, notifier)
 	err = notifier.WaitNotify()
-	return instanceID, batchIndex, smCtx, err
+	return instanceID, batchIndex, err
 }
 
 func (b *ProposeBatch) SetBatchCount(batchCount int) {
@@ -172,7 +172,7 @@ func (b *ProposeBatch) propose(reqs []*PendingProposal) {
 
 	buff, err = proto.Marshal(batchValues)
 	if err == nil {
-		err = b.node.ProposeWithCtx(b.myGroupIdx, string(buff), instanceID, smCtx)
+		instanceID, err = b.node.ProposeWithSMCtx(b.myGroupIdx, string(buff), smCtx)
 		if err != nil {
 			log.Error("real propose fail", log.Err(err))
 		}
@@ -230,9 +230,9 @@ func (b *ProposeBatch) pluckProposal() []*PendingProposal {
 }
 
 func (b *ProposeBatch) onlyOnePropose(pendingProposal *PendingProposal) {
-	ret := b.node.ProposeWithCtx(b.myGroupIdx, *pendingProposal.Value,
-		*pendingProposal.InstanceID, pendingProposal.SMCtx)
-	pendingProposal.Notifier.SendNotify(ret)
+	var err error
+	*pendingProposal.InstanceID, err = b.node.ProposeWithSMCtx(b.myGroupIdx, *pendingProposal.Value, pendingProposal.SMCtx)
+	pendingProposal.Notifier.SendNotify(err)
 }
 
 func (b *ProposeBatch) needBatch() bool {

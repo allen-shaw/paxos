@@ -78,7 +78,7 @@ type GroupSMInfo struct {
 
 	//optional
 	//One paxos group can mounting multi state machines.
-	SMList []*StateMachine
+	SMList []StateMachine
 
 	//optional
 	//Master election is an internal state machine.
