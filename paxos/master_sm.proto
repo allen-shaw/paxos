@@ -3,8 +3,7 @@ package paxos;
 
 option go_package = "github.com/AllenShaw19/paxos/paxos;paxos";
 
-message MasterOperator
-{
+message MasterOperator {
   uint64 nodeid = 1;
   uint64 version = 2;
   int32 timeout = 3;
