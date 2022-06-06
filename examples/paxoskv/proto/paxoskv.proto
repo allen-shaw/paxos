@@ -23,7 +23,7 @@ message KVResponse {
   uint64 master_nodeid = 3;
 };
 
-service PhxKVServer {
+service PaxosKVServer {
   rpc Put(KVOperator) returns (KVResponse) { }
   rpc GetLocal(KVOperator) returns (KVResponse) { }
   rpc GetGlobal(KVOperator) returns (KVResponse) { }

@@ -18,194 +18,194 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// PhxKVServerClient is the client API for PhxKVServer service.
+// PaxosKVServerClient is the client API for PaxosKVServer service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PhxKVServerClient interface {
+type PaxosKVServerClient interface {
 	Put(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error)
 	GetLocal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error)
 	GetGlobal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error)
 	Delete(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error)
 }
 
-type phxKVServerClient struct {
+type paxosKVServerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPhxKVServerClient(cc grpc.ClientConnInterface) PhxKVServerClient {
-	return &phxKVServerClient{cc}
+func NewPaxosKVServerClient(cc grpc.ClientConnInterface) PaxosKVServerClient {
+	return &paxosKVServerClient{cc}
 }
 
-func (c *phxKVServerClient) Put(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
+func (c *paxosKVServerClient) Put(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
 	out := new(KVResponse)
-	err := c.cc.Invoke(ctx, "/paxoskv.PhxKVServer/Put", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/paxoskv.PaxosKVServer/Put", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *phxKVServerClient) GetLocal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
+func (c *paxosKVServerClient) GetLocal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
 	out := new(KVResponse)
-	err := c.cc.Invoke(ctx, "/paxoskv.PhxKVServer/GetLocal", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/paxoskv.PaxosKVServer/GetLocal", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *phxKVServerClient) GetGlobal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
+func (c *paxosKVServerClient) GetGlobal(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
 	out := new(KVResponse)
-	err := c.cc.Invoke(ctx, "/paxoskv.PhxKVServer/GetGlobal", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/paxoskv.PaxosKVServer/GetGlobal", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *phxKVServerClient) Delete(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
+func (c *paxosKVServerClient) Delete(ctx context.Context, in *KVOperator, opts ...grpc.CallOption) (*KVResponse, error) {
 	out := new(KVResponse)
-	err := c.cc.Invoke(ctx, "/paxoskv.PhxKVServer/Delete", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/paxoskv.PaxosKVServer/Delete", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PhxKVServerServer is the server API for PhxKVServer service.
-// All implementations must embed UnimplementedPhxKVServerServer
+// PaxosKVServerServer is the server API for PaxosKVServer service.
+// All implementations must embed UnimplementedPaxosKVServerServer
 // for forward compatibility
-type PhxKVServerServer interface {
+type PaxosKVServerServer interface {
 	Put(context.Context, *KVOperator) (*KVResponse, error)
 	GetLocal(context.Context, *KVOperator) (*KVResponse, error)
 	GetGlobal(context.Context, *KVOperator) (*KVResponse, error)
 	Delete(context.Context, *KVOperator) (*KVResponse, error)
-	mustEmbedUnimplementedPhxKVServerServer()
+	mustEmbedUnimplementedPaxosKVServerServer()
 }
 
-// UnimplementedPhxKVServerServer must be embedded to have forward compatible implementations.
-type UnimplementedPhxKVServerServer struct {
+// UnimplementedPaxosKVServerServer must be embedded to have forward compatible implementations.
+type UnimplementedPaxosKVServerServer struct {
 }
 
-func (UnimplementedPhxKVServerServer) Put(context.Context, *KVOperator) (*KVResponse, error) {
+func (UnimplementedPaxosKVServerServer) Put(context.Context, *KVOperator) (*KVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
 }
-func (UnimplementedPhxKVServerServer) GetLocal(context.Context, *KVOperator) (*KVResponse, error) {
+func (UnimplementedPaxosKVServerServer) GetLocal(context.Context, *KVOperator) (*KVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetLocal not implemented")
 }
-func (UnimplementedPhxKVServerServer) GetGlobal(context.Context, *KVOperator) (*KVResponse, error) {
+func (UnimplementedPaxosKVServerServer) GetGlobal(context.Context, *KVOperator) (*KVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGlobal not implemented")
 }
-func (UnimplementedPhxKVServerServer) Delete(context.Context, *KVOperator) (*KVResponse, error) {
+func (UnimplementedPaxosKVServerServer) Delete(context.Context, *KVOperator) (*KVResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
-func (UnimplementedPhxKVServerServer) mustEmbedUnimplementedPhxKVServerServer() {}
+func (UnimplementedPaxosKVServerServer) mustEmbedUnimplementedPaxosKVServerServer() {}
 
-// UnsafePhxKVServerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PhxKVServerServer will
+// UnsafePaxosKVServerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PaxosKVServerServer will
 // result in compilation errors.
-type UnsafePhxKVServerServer interface {
-	mustEmbedUnimplementedPhxKVServerServer()
+type UnsafePaxosKVServerServer interface {
+	mustEmbedUnimplementedPaxosKVServerServer()
 }
 
-func RegisterPhxKVServerServer(s grpc.ServiceRegistrar, srv PhxKVServerServer) {
-	s.RegisterService(&PhxKVServer_ServiceDesc, srv)
+func RegisterPaxosKVServerServer(s grpc.ServiceRegistrar, srv PaxosKVServerServer) {
+	s.RegisterService(&PaxosKVServer_ServiceDesc, srv)
 }
 
-func _PhxKVServer_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PaxosKVServer_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KVOperator)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhxKVServerServer).Put(ctx, in)
+		return srv.(PaxosKVServerServer).Put(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/paxoskv.PhxKVServer/Put",
+		FullMethod: "/paxoskv.PaxosKVServer/Put",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhxKVServerServer).Put(ctx, req.(*KVOperator))
+		return srv.(PaxosKVServerServer).Put(ctx, req.(*KVOperator))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PhxKVServer_GetLocal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PaxosKVServer_GetLocal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KVOperator)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhxKVServerServer).GetLocal(ctx, in)
+		return srv.(PaxosKVServerServer).GetLocal(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/paxoskv.PhxKVServer/GetLocal",
+		FullMethod: "/paxoskv.PaxosKVServer/GetLocal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhxKVServerServer).GetLocal(ctx, req.(*KVOperator))
+		return srv.(PaxosKVServerServer).GetLocal(ctx, req.(*KVOperator))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PhxKVServer_GetGlobal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PaxosKVServer_GetGlobal_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KVOperator)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhxKVServerServer).GetGlobal(ctx, in)
+		return srv.(PaxosKVServerServer).GetGlobal(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/paxoskv.PhxKVServer/GetGlobal",
+		FullMethod: "/paxoskv.PaxosKVServer/GetGlobal",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhxKVServerServer).GetGlobal(ctx, req.(*KVOperator))
+		return srv.(PaxosKVServerServer).GetGlobal(ctx, req.(*KVOperator))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PhxKVServer_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PaxosKVServer_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(KVOperator)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhxKVServerServer).Delete(ctx, in)
+		return srv.(PaxosKVServerServer).Delete(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/paxoskv.PhxKVServer/Delete",
+		FullMethod: "/paxoskv.PaxosKVServer/Delete",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhxKVServerServer).Delete(ctx, req.(*KVOperator))
+		return srv.(PaxosKVServerServer).Delete(ctx, req.(*KVOperator))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// PhxKVServer_ServiceDesc is the grpc.ServiceDesc for PhxKVServer service.
+// PaxosKVServer_ServiceDesc is the grpc.ServiceDesc for PaxosKVServer service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var PhxKVServer_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "paxoskv.PhxKVServer",
-	HandlerType: (*PhxKVServerServer)(nil),
+var PaxosKVServer_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "paxoskv.PaxosKVServer",
+	HandlerType: (*PaxosKVServerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Put",
-			Handler:    _PhxKVServer_Put_Handler,
+			Handler:    _PaxosKVServer_Put_Handler,
 		},
 		{
 			MethodName: "GetLocal",
-			Handler:    _PhxKVServer_GetLocal_Handler,
+			Handler:    _PaxosKVServer_GetLocal_Handler,
 		},
 		{
 			MethodName: "GetGlobal",
-			Handler:    _PhxKVServer_GetGlobal_Handler,
+			Handler:    _PaxosKVServer_GetGlobal_Handler,
 		},
 		{
 			MethodName: "Delete",
-			Handler:    _PhxKVServer_Delete_Handler,
+			Handler:    _PaxosKVServer_Delete_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
