@@ -58,7 +58,7 @@ func (sm *SystemVSM) Init() error {
 	}
 	if err == ErrNotExist {
 		sm.systemVariables.Gid = 0
-		sm.systemVariables.Version = -1
+		sm.systemVariables.Version = math.MaxUint64
 		log.Info("variables not exists")
 	} else {
 		sm.RefleshNodeID()

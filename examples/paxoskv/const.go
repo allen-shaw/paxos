@@ -7,11 +7,10 @@ import (
 )
 
 const (
-	KVStatusSucc            = 0
-	KVStatusFail            = -1
-	KVStatusKeyNotExist     = 1
-	KVStatusVersionConflict = -11
-	KVStatusVersionNotExist = -12
+	KVStatusFail            = 1
+	KVStatusKeyNotExist     = 2
+	KVStatusVersionConflict = 11
+	KVStatusVersionNotExist = 12
 	KVStatusRedirect        = 10
 	KVStatusNoMaster        = 101
 )

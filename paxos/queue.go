@@ -18,13 +18,13 @@ func NewQueue[T any]() *Queue[T] {
 	return q
 }
 
-func (q *Queue[T]) Peek(timeoutMs int) (T, bool) {
+func (q *Queue[T]) Peek(timeoutMs int) (value T, ok bool) {
 	for q.Empty() {
 		if q.cond.WaitFor(time.Duration(timeoutMs) * time.Millisecond) {
-			return nil, false
+			return value, false
 		}
 	}
-	value := q.storage.Front()
+	value = q.storage.Front()
 	return value, true
 }
 
@@ -73,18 +73,18 @@ func (q queue[T]) Empty() bool {
 	return q.Size() == 0
 }
 
-func (q *queue[T]) PopFront() T {
+func (q *queue[T]) PopFront() (value T) {
 	if q.Empty() {
-		return nil
+		return value
 	}
-	value := (*q)[0]
+	value = (*q)[0]
 	*q = (*q)[1:]
 	return value
 }
 
-func (q queue[T]) Front() T {
+func (q queue[T]) Front() (value T) {
 	if q.Empty() {
-		return nil
+		return value
 	}
 	return q[0]
 }

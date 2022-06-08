@@ -147,8 +147,8 @@ func (f *SMFac) BeforeProposeCall(groupIdx int, smID int, bodyValue string) bool
 
 func (f *SMFac) GetCheckpointInstanceID(groupIdx int) uint64 {
 	hasUseSM := false
-	cpInstanceID := uint64(-1)
-	cpInstanceIDInsize := uint64(-1)
+	cpInstanceID := uint64(math.MaxUint64)
+	cpInstanceIDInside := uint64(math.MaxUint64)
 	for _, sm := range f.sms {
 		checkpointInstanceID := sm.GetCheckpointInstanceID(groupIdx)
 		if sm.SMID() == SystemVSMID || sm.SMID() == MasterVSMID {
@@ -159,14 +159,14 @@ func (f *SMFac) GetCheckpointInstanceID(groupIdx int) uint64 {
 			if checkpointInstanceID == math.MaxUint64 {
 				continue
 			}
-			if checkpointInstanceID > cpInstanceIDInsize || cpInstanceIDInsize == math.MaxUint64 {
-				cpInstanceIDInsize = checkpointInstanceID
+			if checkpointInstanceID > cpInstanceIDInside || cpInstanceIDInside == math.MaxUint64 {
+				cpInstanceIDInside = checkpointInstanceID
 			}
 			continue
 		}
 
 		hasUseSM = true
-		if checkpointInstanceID == uint64(-1) {
+		if checkpointInstanceID == math.MaxUint64 {
 			continue
 		}
 
@@ -178,7 +178,7 @@ func (f *SMFac) GetCheckpointInstanceID(groupIdx int) uint64 {
 	if hasUseSM {
 		return cpInstanceID
 	}
-	return cpInstanceIDInsize
+	return cpInstanceIDInside
 }
 
 func (f *SMFac) GetSMList() []StateMachine {
