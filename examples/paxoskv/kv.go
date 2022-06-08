@@ -133,7 +133,7 @@ func (kv *PaxosKV) Delete(key string, version uint64) error {
 }
 
 func (kv *PaxosKV) getGroupIdx(key string) int {
-	return int(xxhash.Sum64String(key))
+	return int(xxhash.Sum64String(key) % uint64(kv.groupCount))
 }
 
 func (kv *PaxosKV) propose(key, paxosValue string, ctx *PaxosKVSMCtx) error {
