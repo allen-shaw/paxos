@@ -41,7 +41,7 @@ func (s *ProposerState) NewPrepare() {
 		maxProposalID = s.proposalID
 	}
 
-	s.proposalID = maxProposalID - 1
+	s.proposalID = maxProposalID + 1
 	log.Info("END NewPrepare", log.Uint64("new.proposal_id", s.proposalID))
 }
 
