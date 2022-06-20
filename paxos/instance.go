@@ -370,7 +370,7 @@ func (i *Instance) OnReceivePaxosMsg(msg *PaxosMsg, isRetry bool) error {
 
 		return i.ReceiveMsgForProposer(msg)
 
-	} else if msg.MsgType == MsgTypePaxosPrepareReply ||
+	} else if msg.MsgType == MsgTypePaxosPrepare ||
 		msg.MsgType == MsgTypePaxosAccept {
 
 		//if my gid is zero, then this is a unknown node.

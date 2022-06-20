@@ -1,7 +1,7 @@
 syntax = "proto3";
 package paxos;
 
-option go_package = "github.com/AllenShaw19/paxos/paxos;paxos";
+option go_package = "github.com/AllenShaw19/paxos/paxos";
 
 message Header {
   uint64 gid = 1;
