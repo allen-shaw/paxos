@@ -257,7 +257,6 @@ func (l *Learner) SendNowInstanceID(instanceID uint64, sendNodeID NodeID) {
 	paxosMsg.MinChosenInstanceID = l.checkpointMgr.GetMinChosenInstanceID()
 
 	if l.GetInstanceID()-instanceID > 50 {
-		//instanceid too close not need to send vsm/master checkpoint.
 		systemVariablesBuff, err := l.config.GetSystemVSM().GetCheckpointBuffer()
 		if err == nil {
 			paxosMsg.SystemVariables = []byte(systemVariablesBuff)
@@ -271,6 +270,7 @@ func (l *Learner) SendNowInstanceID(instanceID uint64, sendNodeID NodeID) {
 		}
 	}
 
+	//instanceid too close not need to send vsm/master checkpoint.
 	err := l.sendMessage(sendNodeID, paxosMsg)
 	if err != nil {
 		log.Error("send message fail", log.Err(err))
