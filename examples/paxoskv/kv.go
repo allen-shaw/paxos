@@ -1,8 +1,8 @@
 package paxoskv
 
 import (
-	"github.com/AllenShaw19/paxos/log"
 	"github.com/AllenShaw19/paxos/paxos"
+	"github.com/AllenShaw19/paxos/plugin/log"
 	"github.com/cespare/xxhash/v2"
 )
 

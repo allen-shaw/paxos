@@ -1,6 +1,8 @@
 package paxos
 
-import "github.com/AllenShaw19/paxos/log"
+import (
+	"github.com/AllenShaw19/paxos/plugin/log"
+)
 
 type Config struct {
 	logSync       bool

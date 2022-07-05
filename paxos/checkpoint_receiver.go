@@ -3,7 +3,7 @@ package paxos
 import (
 	"errors"
 	"fmt"
-	"github.com/AllenShaw19/paxos/log"
+	"github.com/AllenShaw19/paxos/plugin/log"
 	"io"
 	"os"
 	"path/filepath"

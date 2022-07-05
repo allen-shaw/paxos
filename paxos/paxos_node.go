@@ -3,7 +3,7 @@ package paxos
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/AllenShaw19/paxos/log"
+	"github.com/AllenShaw19/paxos/plugin/log"
 	"github.com/golang/protobuf/proto"
 	"math"
 )

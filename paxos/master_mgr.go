@@ -1,7 +1,7 @@
 package paxos
 
 import (
-	"github.com/AllenShaw19/paxos/log"
+	"github.com/AllenShaw19/paxos/plugin/log"
 	"math/rand"
 	"time"
 )

@@ -3,7 +3,7 @@ package paxoskv
 import (
 	"encoding/binary"
 	pb "github.com/AllenShaw19/paxos/examples/paxoskv/proto"
-	"github.com/AllenShaw19/paxos/log"
+	"github.com/AllenShaw19/paxos/plugin/log"
 	"github.com/cockroachdb/pebble"
 	"github.com/golang/protobuf/proto"
 	"sync"
