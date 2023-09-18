@@ -1,0 +1,13 @@
+syntax = "proto3";
+package paxos;
+
+option go_package = "github.com/AllenShaw19/paxos/paxos;paxos";
+
+message MasterOperator {
+  uint64 nodeid = 1;
+  uint64 version = 2;
+  int32 timeout = 3;
+  uint32 operator = 4;
+  uint32 sid = 5;
+  uint64 lastversion = 6;
+};

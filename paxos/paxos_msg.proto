@@ -1,0 +1,80 @@
+syntax = "proto3";
+package paxos;
+
+option go_package = "github.com/AllenShaw19/paxos/paxos";
+
+message Header {
+  uint64 gid = 1;
+  uint64 rid = 2;
+  int32 cmdId = 3;
+  int32 version = 4;
+};
+
+message PaxosMsg {
+  int32 MsgType = 1;
+  uint64 InstanceID = 2;
+  uint64 NodeID = 3;
+  uint64 ProposalID = 4;
+  uint64 ProposalNodeID = 5;
+  bytes Value = 6;
+  uint64 PreAcceptID = 7;
+  uint64 PreAcceptNodeID = 8;
+  uint64 RejectByPromiseID = 9;
+  uint64 NowInstanceID = 10;
+  uint64 MinChosenInstanceID = 11;
+  uint32 LastChecksum = 12;
+  uint32 Flag = 13;
+  bytes SystemVariables = 14;
+  bytes MasterVariables = 15;
+};
+
+message CheckpointMsg {
+  int32 MsgType = 1;
+  uint64 NodeID = 2;
+  int32 Flag = 3;
+  uint64 UUID = 4;
+  uint64 Sequence = 5;
+  uint64 CheckpointInstanceID = 6;
+  uint32 Checksum = 7;
+  string FilePath = 8;
+  int32 SMID = 9;
+  uint64 Offset = 10;
+  bytes Buffer = 11;
+};
+
+message AcceptorStateData {
+  uint64 InstanceID = 1;
+  uint64 PromiseID = 2;
+  uint64 PromiseNodeID = 3;
+  uint64 AcceptedID = 4;
+  uint64 AcceptedNodeID = 5;
+  bytes AcceptedValue = 6;
+  uint32 Checksum = 7;
+};
+
+
+message PaxosNodeInfo {
+  uint64 Rid = 1;
+  uint64 NodeId = 2;
+};
+
+message SystemVariables {
+  uint64 Gid = 1;
+  repeated PaxosNodeInfo MemberShip = 2;
+  uint64 Version = 3;
+};
+
+message MasterVariables {
+  uint64 MasterNodeId = 1;
+  uint64 Version = 2;
+  uint32 LeaseTime = 3;
+};
+
+message PaxosValue {
+  int32 SMID = 1;
+  bytes Value = 2;
+};
+
+message BatchPaxosValues {
+  repeated PaxosValue Values = 1;
+};
